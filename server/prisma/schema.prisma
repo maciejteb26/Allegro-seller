@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// UŻYTKOWNICY I AUTENTYKACJA
+// ============================================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  plan         Plan     @default(FREE)
+  createdAt    DateTime @default(now())
+
+  listings     Listing[]
+  platforms    UserPlatform[]
+  marginRules  MarginRule[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPlatform {
+  id           String    @id @default(cuid())
+  userId       String
+  platform     Platform
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  isActive     Boolean   @default(false)
+  connectedAt  DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+}
+
+model MarginRule {
+  id          String     @id @default(cuid())
+  userId      String
+  platform    Platform
+  marginType  MarginType
+  marginValue Decimal
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+}
+
+// ============================================================
+// NORMALIZACJA POJAZDÓW
+// ============================================================
+
+model VehicleMake {
+  id      String        @id @default(cuid())
+  name    String        @unique
+  types   VehicleType[]
+
+  models  VehicleModel[]
+}
+
+model VehicleModel {
+  id      String  @id @default(cuid())
+  makeId  String
+  name    String
+
+  make        VehicleMake         @relation(fields: [makeId], references: [id])
+  generations VehicleGeneration[]
+
+  @@unique([makeId, name])
+}
+
+model VehicleGeneration {
+  id       String  @id @default(cuid())
+  modelId  String
+  name     String?
+  yearFrom Int
+  yearTo   Int?
+
+  model    VehicleModel @relation(fields: [modelId], references: [id])
+}
+
+// ============================================================
+// SYSTEM KATEGORII WEWNĘTRZNYCH
+// ============================================================
+
+model InternalCategory {
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  parentId String?
+
+  parent   InternalCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children InternalCategory[] @relation("CategoryTree")
+
+  platformMappings PlatformCategoryMapping[]
+  listings         Listing[]
+}
+
+model PlatformCategoryMapping {
+  id                   String   @id @default(cuid())
+  internalCategoryId   String
+  platform             Platform
+  externalCategoryId   String
+  externalCategoryName String?
+  attributeSchema      Json?
+  cachedAt             DateTime @default(now())
+
+  category             InternalCategory @relation(fields: [internalCategoryId], references: [id])
+
+  @@unique([internalCategoryId, platform])
+}
+
+// ============================================================
+// OGŁOSZENIA
+// ============================================================
+
+model Listing {
+  id          String      @id @default(cuid())
+  userId      String
+
+  title       String
+  description String
+  basePrice   Decimal
+  currency    String      @default("PLN")
+  condition   Condition
+  quantity    Int         @default(1)
+
+  identMethod    IdentMethod
+  vin            String?
+  catalogNumber  String?
+
+  vehicleType    VehicleType
+  vehicleMakeId  String?
+  vehicleModelId String?
+  vehicleGenId   String?
+  vehicleYearRaw Int?
+  vehicleEngine  String?
+
+  categoryId   String
+  partSide     String?
+  partDetails  String?
+
+  damageDescription String?
+  rawUserInput      String?
+
+  status    ListingStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id])
+  category         InternalCategory @relation(fields: [categoryId], references: [id])
+  images           ListingImage[]
+  platformListings PlatformListing[]
+}
+
+model ListingImage {
+  id        String  @id @default(cuid())
+  listingId String
+  s3Key     String
+  s3Bucket  String
+  order     Int
+  isMain    Boolean @default(false)
+  width     Int?
+  height    Int?
+
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model PlatformListing {
+  id             String         @id @default(cuid())
+  listingId      String
+  platform       Platform
+
+  finalPrice     Decimal
+  platformTitle  String
+  externalId     String?
+  externalUrl    String?
+  status         PlatformStatus @default(PENDING)
+  errorMessage   String?
+  errorCode      String?
+  retryCount     Int            @default(0)
+  publishedAt    DateTime?
+  lastSyncedAt   DateTime?
+
+  listing        Listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, platform])
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Platform {
+  ALLEGRO
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum Condition {
+  NEW
+  USED
+  DAMAGED
+}
+
+enum VehicleType {
+  CAR
+  MOTORCYCLE
+  TRUCK
+  OTHER
+}
+
+enum IdentMethod {
+  VIN
+  CATALOG_NUMBER
+  MANUAL
+  AI_PARSED
+}
+
+enum ListingStatus {
+  DRAFT
+  PUBLISHING
+  ACTIVE
+  PARTIALLY_ACTIVE
+  ENDED
+  ERROR
+}
+
+enum PlatformStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  ERROR
+}
+
+enum MarginType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
