@@ -1,0 +1,6 @@
+---
+description: Never add Cursor attribution to git commits or PRs
+alwaysApply: true
+---
+
+Never add "Made-with: Cursor", "Co-authored-by: Cursor", or any Cursor attribution trailer to commits, pull requests, or code comments.
