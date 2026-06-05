@@ -14,6 +14,7 @@ export interface WizardData {
 
   // Step 2
   categoryId?: string;
+  productBrand?: string;
   partSide?: string;
   condition?: Condition;
   title?: string;

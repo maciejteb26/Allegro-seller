@@ -14,6 +14,7 @@ import { prisma } from '../utils/prisma';
 const createSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10),
+  productBrand: z.string().max(80).nullish(),
   basePrice: z.number().positive(),
   condition: z.enum(['NEW', 'USED', 'DAMAGED']),
   quantity: z.number().int().positive().optional(),

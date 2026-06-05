@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -21,6 +21,7 @@ import { WizardDraftSkeleton } from './wizard/WizardDraftSkeleton';
 
 export default function NewListingPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(WIZARD_DEFAULTS);
@@ -86,6 +87,7 @@ export default function NewListingPage() {
       const listing = await createListing({
         title: data.title!,
         description: data.description!,
+        productBrand: data.productBrand,
         basePrice: data.basePrice!,
         condition: data.condition!,
         quantity: data.quantity ?? 1,
@@ -111,6 +113,8 @@ export default function NewListingPage() {
       }
 
       clearDraft();
+      await queryClient.invalidateQueries({ queryKey: ['listings'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast('Ogłoszenie zostało zapisane!', 'success');
       navigate('/listings');
     } catch {

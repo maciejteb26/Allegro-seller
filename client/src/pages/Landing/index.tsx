@@ -1,19 +1,23 @@
 import { LandingNav } from './LandingNav';
 import { LandingHero } from './LandingHero';
-import { LandingPlatforms } from './LandingPlatforms';
+import { LandingWorkflow } from './LandingWorkflow';
 import { LandingFeatures } from './LandingFeatures';
-import { LandingHowItWorks } from './LandingHowItWorks';
+import { LandingSeoSection } from './LandingSeoSection';
+import { LandingFaq } from './LandingFaq';
 import { LandingCta, LandingFooter } from './LandingCta';
+import { LandingJsonLd } from './LandingJsonLd';
 
 export default function LandingPage() {
   return (
-    <div className="landing-page min-h-screen bg-slate-950 font-sans text-slate-200 selection:bg-amber-500/30">
+    <div className="min-h-screen bg-surface font-sans selection:bg-primary-100 selection:text-primary-900">
+      <LandingJsonLd />
       <LandingNav />
       <main>
         <LandingHero />
-        <LandingPlatforms />
+        <LandingWorkflow />
         <LandingFeatures />
-        <LandingHowItWorks />
+        <LandingSeoSection />
+        <LandingFaq />
         <LandingCta />
       </main>
       <LandingFooter />

@@ -5,6 +5,7 @@ const TITLE_LIMIT = 75;
 
 interface ListingForTitle {
   category: { name: string };
+  productBrand?: string | null;
   condition: string;
   vehicleMakeId?: string | null;
   vehicleModelId?: string | null;
@@ -35,6 +36,7 @@ export async function generateTitle(listing: ListingForTitle, _platform: Platfor
   ]);
 
   const parts = compact([
+    listing.productBrand,
     listing.category.name,
     make,
     model,
@@ -44,7 +46,7 @@ export async function generateTitle(listing: ListingForTitle, _platform: Platfor
     listing.partDetails,
   ]);
 
-  const mandatory = compact([listing.category.name, make, model]);
+  const mandatory = compact([listing.productBrand, listing.category.name, make, model]);
   const fitted = fitToLimit(parts, mandatory, TITLE_LIMIT);
   return fitted || mandatory.join(' ').trim();
 }

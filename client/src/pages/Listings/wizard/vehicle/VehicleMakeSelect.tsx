@@ -31,10 +31,10 @@ export function VehicleMakeSelect({ makes, selectedId, onSelect }: Props) {
 
   return (
     <div>
-      <Label className="mb-1 block text-sm font-medium">Marka</Label>
+      <Label className="mb-1 block text-sm font-medium">Marka pojazdu</Label>
       <div className="relative">
         <Input
-          placeholder="Szukaj marki..."
+          placeholder="Szukaj marki pojazdu..."
           value={search}
           onFocus={(e) => {
             setOpenUpwards(resolveDropdownDirection(e.currentTarget));

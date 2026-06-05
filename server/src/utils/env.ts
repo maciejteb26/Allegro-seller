@@ -26,6 +26,8 @@ export const env = {
   S3_ACCESS_KEY: process.env.S3_ACCESS_KEY ?? '',
   S3_SECRET_KEY: process.env.S3_SECRET_KEY ?? '',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '',
+  ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? 'claude-haiku-4-5-20251001',
+  AI_MOCK: !process.env.ANTHROPIC_API_KEY && process.env.AI_MOCK !== 'false',
   ALLEGRO_SANDBOX: process.env.ALLEGRO_SANDBOX !== 'false',
   ALLEGRO_USER_AGENT:
     process.env.ALLEGRO_USER_AGENT ?? 'AllegroSeller/0.1.0 (+https://example.com/allegro-seller)',
@@ -33,4 +35,11 @@ export const env = {
   ALLEGRO_CLIENT_SECRET: process.env.ALLEGRO_CLIENT_SECRET ?? '',
   ALLEGRO_REDIRECT_URI: process.env.ALLEGRO_REDIRECT_URI ?? '',
   ALLEGRO_MOCK: process.env.ALLEGRO_MOCK !== 'false',
+  SERPAPI_KEY: process.env.SERPAPI_KEY ?? '',
+  GOOGLE_CSE_API_KEY: process.env.GOOGLE_CSE_API_KEY ?? '',
+  GOOGLE_CSE_CX: process.env.GOOGLE_CSE_CX ?? '',
+  EXTERNAL_SEARCH_MOCK:
+    process.env.EXTERNAL_SEARCH_MOCK !== 'false' &&
+    !process.env.SERPAPI_KEY &&
+    !process.env.GOOGLE_CSE_API_KEY,
 };

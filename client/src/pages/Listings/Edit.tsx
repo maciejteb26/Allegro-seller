@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -26,6 +26,7 @@ import { WizardDraftSkeleton } from './wizard/WizardDraftSkeleton';
 export default function EditListingPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(WIZARD_DEFAULTS);
@@ -129,11 +130,15 @@ export default function EditListingPage() {
               : 'Zapisano, ale publikacja na platformach nie powiodła się',
             'error',
           );
+          await queryClient.invalidateQueries({ queryKey: ['listings'] });
+          await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
           navigate('/listings');
           return;
         }
       }
 
+      await queryClient.invalidateQueries({ queryKey: ['listings'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast('Ogłoszenie zostało zaktualizowane', 'success');
       navigate('/listings');
     } catch (err) {

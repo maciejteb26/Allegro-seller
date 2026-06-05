@@ -1,5 +1,7 @@
+import { GENERAL_CATEGORY_TREE } from './general-categories';
+
 /**
- * Wewnętrzne drzewo kategorii Selltry — jedyne źródło prawdy dla wszystkich platform.
+ * Wewnętrzne drzewo kategorii — motoryzacja + ogólne produkty Allegro.
  * Slug jest używany przez AI Parser i mapowania PlatformCategoryMapping.
  */
 export interface InternalCategoryChildDef {
@@ -13,7 +15,7 @@ export interface InternalCategoryDef {
   children: InternalCategoryChildDef[];
 }
 
-export const INTERNAL_CATEGORY_TREE: InternalCategoryDef[] = [
+export const AUTOMOTIVE_CATEGORY_TREE: InternalCategoryDef[] = [
   {
     name: 'Silnik',
     slug: 'engine',
@@ -158,10 +160,15 @@ export const INTERNAL_CATEGORY_TREE: InternalCategoryDef[] = [
     ],
   },
   {
-    name: 'Inne',
+    name: 'Inne części',
     slug: 'other',
-    children: [{ name: 'Pozostałe', slug: 'other-misc' }],
+    children: [{ name: 'Pozostałe części', slug: 'other-misc' }],
   },
+];
+
+export const INTERNAL_CATEGORY_TREE: InternalCategoryDef[] = [
+  ...AUTOMOTIVE_CATEGORY_TREE,
+  ...GENERAL_CATEGORY_TREE,
 ];
 
 /** Wszystkie slugi liści (podkategorii) — dla AI Parser i walidacji */

@@ -78,7 +78,7 @@ export function Step1Vehicle({ data, onChange, compact }: Props) {
   const identSection = (
     <details className="rounded-lg border border-gray-200 bg-gray-50/50">
       <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium text-gray-700">
-        Identyfikacja części (opcjonalnie)
+        Identyfikacja pojazdu (opcjonalnie)
         <ChevronDown className="h-4 w-4 text-gray-400" />
       </summary>
       <div className="space-y-4 border-t border-gray-200 px-4 pb-4 pt-3">

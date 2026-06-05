@@ -4,6 +4,7 @@ import { Listing, ListingStatus } from '../types';
 export interface CreateListingData {
   title: string;
   description: string;
+  productBrand?: string;
   basePrice: number;
   condition: 'NEW' | 'USED' | 'DAMAGED';
   quantity?: number;

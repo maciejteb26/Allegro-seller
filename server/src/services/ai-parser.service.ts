@@ -1,7 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { Condition } from '@prisma/client';
 import { prisma } from '../utils/prisma';
-import { env } from '../utils/env';
+import { completeParserPrompt, isAiEnabled, resolveAiMode } from './ai.client';
 import { extractVehicleFromText } from './ai-parser-vehicle';
 
 export interface ParsedListingData {
@@ -18,10 +17,8 @@ export interface ParsedListingData {
   parserMode: 'AI' | 'REGEX';
 }
 
-const anthropic = env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) : null;
-
 export async function parseInput(rawInput: string): Promise<ParsedListingData> {
-  if (!anthropic) {
+  if (!isAiEnabled() || resolveAiMode() === 'MOCK') {
     return parseWithRegex(rawInput);
   }
 
@@ -42,15 +39,8 @@ export async function parseInput(rawInput: string): Promise<ParsedListingData> {
     `Tekst: "${rawInput}"`,
   ].join('\n');
 
-  const completion = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 500,
-    temperature: 0,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = completion.content.find((part) => part.type === 'text');
-  const parsed = safeParseJson(text?.text ?? '');
+  const { text } = await completeParserPrompt(prompt);
+  const parsed = safeParseJson(text);
   if (!parsed) return parseWithRegex(rawInput);
   const normalized = normalizeResult(parsed);
   if (!normalized.vehicleMake) {

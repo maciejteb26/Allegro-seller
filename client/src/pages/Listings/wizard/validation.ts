@@ -17,8 +17,8 @@ export function getStepValidationErrors(
   const errors: string[] = [];
 
   if (step === 0) {
-    if (!data.categoryId) errors.push('Wybierz kategorię części');
-    if (!data.condition) errors.push('Wybierz stan części');
+    if (!data.categoryId) errors.push('Wybierz kategorię produktu');
+    if (!data.condition) errors.push('Wybierz stan produktu');
     if (!data.title?.trim()) errors.push('Podaj tytuł ogłoszenia');
     if ((data.description?.trim().length ?? 0) < MIN_DESCRIPTION_LENGTH) {
       errors.push(`Opis musi mieć co najmniej ${MIN_DESCRIPTION_LENGTH} znaków`);

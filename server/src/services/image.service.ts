@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import sharp from 'sharp';
@@ -9,6 +10,36 @@ import { env } from '../utils/env';
 const MAX_WIDTH = 1600;
 const MAX_HEIGHT = 1200;
 const PRESIGNED_URL_TTL = 3600;
+
+export async function uploadImageFromUrl(
+  imageUrl: string,
+  listingId: string,
+  order: number,
+  isMain: boolean,
+): Promise<{ s3Key: string; width: number; height: number } | null> {
+  try {
+    const response = await axios.get<ArrayBuffer>(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 12_000,
+      maxRedirects: 3,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AllegroSeller/1.0)' },
+    });
+    return uploadImage(Buffer.from(response.data), listingId, order, isMain);
+  } catch {
+    return null;
+  }
+}
+
+export async function uploadPlaceholderImage(
+  listingId: string,
+): Promise<{ s3Key: string; width: number; height: number }> {
+  const buffer = await sharp({
+    create: { width: 640, height: 480, channels: 3, background: { r: 245, g: 245, b: 245 } },
+  })
+    .webp({ quality: 80 })
+    .toBuffer();
+  return uploadImage(buffer, listingId, 0, true);
+}
 
 export async function uploadImage(
   fileBuffer: Buffer,

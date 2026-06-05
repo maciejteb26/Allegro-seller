@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/store/auth.store';
 import { changePassword } from '@/api/settings.api';
 import MarginsSection from './Margins';
+import AiSection from './AiSection';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -113,6 +114,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <AiSection />
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-gray-800">Marże na platformach</h2>

@@ -15,6 +15,8 @@ import EditListingPage from '@/pages/Listings/Edit';
 import PlatformsPage from '@/pages/Platforms';
 import OrdersPage from '@/pages/Orders';
 import SettingsPage from '@/pages/Settings';
+import ImportsPage from '@/pages/Imports';
+import ClientsPage from '@/pages/Clients';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 function AuthLoader({ children }: { children: React.ReactNode }) {
@@ -52,6 +54,8 @@ export default function App() {
                   path="/listings/:id/edit"
                   element={<ErrorBoundary><EditListingPage /></ErrorBoundary>}
                 />
+                <Route path="/clients" element={<ErrorBoundary><ClientsPage /></ErrorBoundary>} />
+                <Route path="/imports" element={<ErrorBoundary><ImportsPage /></ErrorBoundary>} />
                 <Route path="/platforms" element={<ErrorBoundary><PlatformsPage /></ErrorBoundary>} />
                 <Route path="/orders" element={<ErrorBoundary><OrdersPage /></ErrorBoundary>} />
                 <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />

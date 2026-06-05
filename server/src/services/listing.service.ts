@@ -12,6 +12,7 @@ const LISTING_WITH_RELATIONS = {
 export interface CreateListingData {
   title: string;
   description: string;
+  productBrand?: string;
   basePrice: number;
   condition: 'NEW' | 'USED' | 'DAMAGED';
   quantity?: number;

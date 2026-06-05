@@ -6,6 +6,8 @@ import * as settingsCtrl from '../controllers/settings.controller';
 const router = Router();
 router.use(authMiddleware);
 
+router.get('/settings/ai', settingsCtrl.getAiSettings);
+router.get('/settings/search', settingsCtrl.getSearchSettings);
 router.get('/settings/margins', marginCtrl.getMargins);
 router.put('/settings/margins', marginCtrl.saveMargins);
 router.put('/settings/password', settingsCtrl.changePassword);

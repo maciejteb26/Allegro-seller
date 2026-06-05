@@ -74,7 +74,7 @@ export function AIParser({ categories, vehicleType, onApply }: Props) {
       <div className="space-y-4 p-4 sm:p-5">
         <div>
           <label htmlFor="ai-parser-input" className="mb-1.5 block text-sm font-medium text-gray-700">
-            Opis części
+            Opis produktu
           </label>
           <textarea
             id="ai-parser-input"
