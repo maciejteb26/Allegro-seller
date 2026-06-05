@@ -6,10 +6,10 @@ export function LandingPlatforms() {
       <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
         <p className="text-sm font-medium uppercase tracking-widest text-amber-400/90">Integracje</p>
         <h2 className="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">
-          Twoje platformy, jeden panel
+          Pełna integracja z Allegro
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-slate-400">
-          Podłącz konta sprzedażowe i publikuj bez przełączania kart w przeglądarce.
+          Podłącz konto sprzedawcy Allegro i publikuj ogłoszenia bezpośrednio z panelu.
         </p>
 
         <ul className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
