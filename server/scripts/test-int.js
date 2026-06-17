@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 
 process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/allegro_seller_test';
+process.env.DIRECT_URL ??= process.env.DATABASE_URL;
 
 function run(cmd) {
   execSync(cmd, { env: process.env, stdio: 'inherit' });

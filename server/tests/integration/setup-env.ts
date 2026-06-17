@@ -1,4 +1,5 @@
 process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/allegro_seller_test';
+process.env.DIRECT_URL ??= process.env.DATABASE_URL;
 process.env.CLIENT_URL ??= 'http://localhost:5173';
 process.env.JWT_SECRET ??= 'test-jwt-secret-min-32-characters!!!';
 process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret-32-characters!';

@@ -49,6 +49,7 @@ jobs:
         run: npm run test:int --workspace=server
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/allegro_seller_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/allegro_seller_test
 
       - name: Test client
         run: npm run test --workspace=client
