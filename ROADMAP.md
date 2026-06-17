@@ -10,7 +10,7 @@ Aktualizować po zamknięciu każdej fazy.
 |------|-------|--------|
 | 1 | Bezpieczeństwo + CI | ✅ Zrobione (PR #1, zmergowane) |
 | 2 | Observability (Sentry + logi) | ⬜ Do zrobienia |
-| 3 | Testy integracyjne i e2e | ⬜ Do zrobienia |
+| 3 | Testy integracyjne i e2e | ✅ Zrobione (PR #3) |
 | 4 | Deployment i środowiska | ⬜ Do zrobienia |
 | 5 | Repo / organizacja / proces | ⬜ Do zrobienia |
 | 6 | Migracja DB na Supabase (opcjonalna) | ⬜ Do decyzji |
@@ -43,17 +43,21 @@ Aktualizować po zamknięciu każdej fazy.
 
 ---
 
-## Faza 3: Testy integracyjne i e2e
+## Faza 3: Testy integracyjne i e2e — ✅ Zrobione
 
-- [ ] `tests/integration` z testową bazą (Testcontainers / Postgres w CI)
-- [ ] Integracyjne: pełny flow auth (register → login → refresh → logout)
-- [ ] Integracyjne: listing CRUD + autoryzacja (dostęp do listingu innego `userId` → 404)
-- [ ] Integracyjne: publish flow (mock Allegro service)
-- [ ] Wybór i setup frameworku e2e (Playwright)
-- [ ] e2e: rejestracja → dodanie listingu → publikacja (happy path)
-- [ ] e2e/smoke: czy aplikacja wstaje po deployu
-- [ ] Dodanie integration/e2e do `ci.yml`, jeśli wystarczająco szybkie i stabilne
-- [ ] Weryfikacja realnego coverage względem progu 70% w `jest.config.js`
+- [x] `tests/integration` z testową bazą Postgres (`allegro_seller_test`, osobna od dev)
+- [x] Integracyjne: pełny flow auth (register → login → refresh → logout) + przypadki błędne
+- [x] Integracyjne: listing CRUD + autoryzacja (dostęp do listingu innego `userId` → 404)
+- [x] Integracyjne: publish flow (mock Allegro service) + przypadek disconnected platform
+- [x] Wybór i setup frameworku e2e (Playwright)
+- [x] e2e: rejestracja → dodanie listingu → publikacja → status widoczny w UI (happy path)
+- [x] e2e smoke: strona logowania renderuje się bez błędów konsoli
+- [x] Dodanie testów integracyjnych do `ci.yml` (osobny serwis Postgres w GitHub Actions)
+- [x] Refaktor `index.ts` → `app.ts`/`index.ts`, żeby `app` był testowalny przez supertest bez bindowania portu
+
+**Świadomie poza zakresem tej fazy:**
+- [ ] e2e w automatycznym CI — wymaga orkiestracji docker-compose (Postgres+MinIO) w GitHub Actions; zostaje jako lokalny skrypt `npm run test:e2e` na razie (decyzja z rozmowy — ryzyko flaky CI)
+- [ ] Weryfikacja realnego coverage względem progu 70% w `jest.config.js` (próg dotyczy tylko testów jednostkowych)
 
 ---
 
