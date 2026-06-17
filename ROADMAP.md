@@ -59,6 +59,10 @@ Aktualizować po zamknięciu każdej fazy.
 - [ ] e2e w automatycznym CI — wymaga orkiestracji docker-compose (Postgres+MinIO) w GitHub Actions; zostaje jako lokalny skrypt `npm run test:e2e` na razie (decyzja z rozmowy — ryzyko flaky CI)
 - [ ] Weryfikacja realnego coverage względem progu 70% w `jest.config.js` (próg dotyczy tylko testów jednostkowych)
 
+**Znalezione przy pisaniu testów (naprawione w tym PR):**
+- Bug: dwa logowania tego samego użytkownika w tej samej sekundzie kończyły się 500 (kolizja unikalnego refresh tokenu — JWT bez `jti` był identyczny). Naprawione przez dodanie `jwtid` w `auth.service.ts`.
+- Gap procesowy: `prisma/migrations/` zawiera tylko `.gitkeep` — projekt nie ma historii migracji, schemat był zarządzany przez `prisma db push` lokalnie. CI testów integracyjnych też używa `db push`. **Do rozważenia w Fazie 4/5:** wygenerowanie pierwszej realnej migracji (`prisma migrate dev --name init`), żeby mieć odtwarzalną historię schematu przed produkcją.
+
 ---
 
 ## Faza 4: Deployment i środowiska
