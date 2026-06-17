@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prisma';
 import { env } from '../utils/env';
 import { AppError } from '../middleware/error.middleware';
+import { logger } from '../utils/logger';
 
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL_DAYS = 7;
@@ -34,11 +35,18 @@ export async function register(email: string, password: string, name: string): P
 
 export async function login(email: string, password: string): Promise<TokenPair> {
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new AppError(401, 'Invalid credentials');
+  if (!user) {
+    logger.security('login_failed', { email, reason: 'no_such_user' });
+    throw new AppError(401, 'Invalid credentials');
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) throw new AppError(401, 'Invalid credentials');
+  if (!valid) {
+    logger.security('login_failed', { email, reason: 'bad_password' });
+    throw new AppError(401, 'Invalid credentials');
+  }
 
+  logger.security('login_success', { userId: user.id });
   return createTokenPair(user.id);
 }
 

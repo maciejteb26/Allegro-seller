@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import sanitizeHtml from 'sanitize-html';
 import { AuthRequest } from '../middleware/auth.middleware';
 import * as listingService from '../services/listing.service';
 import type { CreateListingData } from '../services/listing.service';
@@ -56,9 +57,19 @@ function stripNulls<T extends Record<string, unknown>>(data: T): Partial<T> {
   ) as Partial<T>;
 }
 
+const SANITIZE_OPTS: sanitizeHtml.IOptions = {
+  allowedTags: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'li'],
+  allowedAttributes: {},
+};
+
+export function sanitizeDescription(value: string): string {
+  return sanitizeHtml(value, SANITIZE_OPTS);
+}
+
 export async function createListing(req: Request, res: Response, next: NextFunction) {
   try {
     const data = stripNulls(createSchema.parse(req.body));
+    if (data.description) data.description = sanitizeDescription(data.description);
     const listing = await listingService.createListing(userId(req), data as CreateListingData);
     res.status(201).json(listing);
   } catch (err) {
@@ -88,6 +99,7 @@ export async function getListing(req: Request, res: Response, next: NextFunction
 export async function updateListing(req: Request, res: Response, next: NextFunction) {
   try {
     const data = stripNulls(createSchema.partial().parse(req.body));
+    if (data.description) data.description = sanitizeDescription(data.description);
     const listing = await listingService.updateListing(
       userId(req),
       req.params.id,

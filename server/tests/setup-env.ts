@@ -1,0 +1,11 @@
+process.env.ENCRYPTION_KEY = 'test-key-exactly-32-characters!!';
+process.env.CLIENT_URL = 'http://localhost:5173';
+process.env.DATABASE_URL = 'postgresql://test';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.JWT_SECRET = 'test-jwt-secret-min-32-characters!!!';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-32-characters!';
+process.env.S3_ENDPOINT = 'http://localhost:9000';
+process.env.S3_BUCKET = 'test-bucket';
+process.env.S3_REGION = 'us-east-1';
+process.env.S3_ACCESS_KEY = 'minioadmin';
+process.env.S3_SECRET_KEY = 'minioadmin';

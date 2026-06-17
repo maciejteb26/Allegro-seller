@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../utils/env';
 import { AppError } from './error.middleware';
+import { logger } from '../utils/logger';
 
 export interface AuthRequest extends Request {
   userId: string;
@@ -16,6 +17,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     (req as AuthRequest).userId = payload.userId;
     next();
   } catch {
+    logger.security('auth_failed', { ip: req.ip, path: req.path });
     next(new AppError(401, 'Not authenticated'));
   }
 }

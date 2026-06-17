@@ -35,7 +35,8 @@ Oznaczaj moki komentarzem: `// MOCK MODE — wymaga ALLEGRO_MOCK=false i prawdzi
 - Tokeny OAuth szyfrowane AES-256 przed zapisem
 - JWT w httpOnly cookie (nie localStorage)
 - Rate limiting: 100 req/15min per IP
-- Sanityzacja HTML na polu `description`
+- Sanityzacja HTML na polu `description` (`sanitizeDescription()` w `listing.controller.ts`, oparte na `sanitize-html`)
+- Zdarzenia bezpieczeństwa (nieudane logowania, nieautoryzowany dostęp, błędy nieobsłużone) logowane przez `utils/logger.ts`
 
 ### Frontend
 - Skeleton screens zamiast spinnerów
