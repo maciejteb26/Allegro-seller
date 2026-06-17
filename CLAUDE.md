@@ -54,5 +54,25 @@ Oznaczaj moki komentarzem: `// MOCK MODE — wymaga ALLEGRO_MOCK=false i prawdzi
 - `server/src/services/allegro-api.service.ts` — REST API Allegro
 - `server/src/services/platforms/allegro.service.ts` — publikacja
 
+## Konwencja commitów
+
+Conventional Commits: `<typ>: <opis>`. Typy używane w tym repo:
+- `feat:` — nowa funkcjonalność (np. `feat: add Excel import pipeline`)
+- `fix:` — poprawka błędu (np. `fix: refresh token collision on same-second login`)
+- `chore:` — utrzymanie, zależności, konfiguracja (np. `chore: add ESLint flat config`)
+- `docs:` — wyłącznie dokumentacja (np. `docs: add deployment guide`)
+- `test:` — wyłącznie testy (np. `test: add integration tests for listing publish flow`)
+- `refactor:` — zmiana struktury kodu bez zmiany zachowania (np. `refactor: split index.ts into app.ts + index.ts`)
+
+Commit message: krótki tytuł (do ok. 70 znaków) + opcjonalnie dłuższy opis "czemu", nie "co"
+(diff już mówi "co"). Historia tego repo sprzed tej konwencji (np. "fix", "Reorder cards") nie
+wymaga retroaktywnej poprawy — konwencja obowiązuje od teraz.
+
+## Lint
+
+`npm run lint` (ESLint, flat config w `eslint.config.js`, poziom "lekki": `eslint:recommended`
++ `typescript-eslint recommended` + `react-hooks`/`react-refresh` dla `client/`). Odpalane w CI
+na każdym PR. Błędy blokują, ostrzeżenia (np. nieużywane zmienne) nie.
+
 ## Zmienne środowiskowe
 Patrz `.env.example`.

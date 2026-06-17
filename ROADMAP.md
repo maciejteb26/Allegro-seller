@@ -12,7 +12,7 @@ Aktualizować po zamknięciu każdej fazy.
 | 2 | Observability (Sentry + logi) | ⬜ Do zrobienia |
 | 3 | Testy integracyjne i e2e | ✅ Zrobione (PR #3) |
 | 4 | Deployment i środowiska | ✅ Kod/configi zrobione (PR #4), decyzje organizacyjne zostają |
-| 5 | Repo / organizacja / proces | ⬜ Do zrobienia |
+| 5 | Repo / organizacja / proces | ✅ Kod/configi zrobione (PR #5), decyzje admina/organizacji zostają |
 | 6 | Migracja DB na Supabase (opcjonalna) | ⬜ Do decyzji |
 
 ---
@@ -84,14 +84,17 @@ Aktualizować po zamknięciu każdej fazy.
 
 ---
 
-## Faza 5: Repo / organizacja / proces
+## Faza 5: Repo / organizacja / proces — ✅ Kod/configi zrobione, decyzje admina zostają
 
-- [ ] Decyzja: przenieść repo do organizacji Red Sky czy zostaje u dev'a
+- [x] ESLint (`eslint.config.js`, flat config) — lekki poziom, `npm run lint`, krok w CI
+- [x] README architektoniczne — `server/src/README.md`, `client/src/README.md` (warstwy, granice, gdzie dodawać kod)
+- [x] Konwencja commitów — udokumentowana w `CLAUDE.md` (Conventional Commits)
+- [x] `docs/REPO-SETUP.md` — dokładna instrukcja branch protection + ról dla właściciela repo
+
+**Wymaga uprawnień admina w GitHub, którego nie mam (sprawdzone: `gh api .../permissions` → `admin: false`) — do zrobienia przez właściciela repo (maciejteb26), instrukcja w `docs/REPO-SETUP.md`:**
+- [ ] Branch protection na `main` (wymagany PR + zielone CI przed merge)
 - [ ] Role i uprawnienia (Admin / Maintainer / Developer / Read-only)
-- [ ] Branch protection na `main` — wymagany PR + zielone CI przed merge
-- [ ] Konwencja commitów (obecnie bez standardu)
-- [ ] Dodanie ESLint (obecnie tylko `tsc --noEmit` jako zamiennik lintu w CI)
-- [ ] README per moduł (granice odpowiedzialności, public API)
+- [ ] Decyzja: przenieść repo do organizacji Red Sky czy zostaje u dev'a
 
 ---
 

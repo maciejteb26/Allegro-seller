@@ -48,7 +48,6 @@ export async function uploadImage(
   isMain: boolean,
 ): Promise<{ s3Key: string; width: number; height: number }> {
   const image = sharp(fileBuffer);
-  const metadata = await image.metadata();
 
   const optimized = await image
     .resize(MAX_WIDTH, MAX_HEIGHT, { fit: 'inside', withoutEnlargement: true })
