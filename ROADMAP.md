@@ -11,7 +11,7 @@ Aktualizować po zamknięciu każdej fazy.
 | 1 | Bezpieczeństwo + CI | ✅ Zrobione (PR #1, zmergowane) |
 | 2 | Observability (Sentry + logi) | ⬜ Do zrobienia |
 | 3 | Testy integracyjne i e2e | ✅ Zrobione (PR #3) |
-| 4 | Deployment i środowiska | ⬜ Do zrobienia |
+| 4 | Deployment i środowiska | ✅ Kod/configi zrobione (PR #4), decyzje organizacyjne zostają |
 | 5 | Repo / organizacja / proces | ⬜ Do zrobienia |
 | 6 | Migracja DB na Supabase (opcjonalna) | ⬜ Do decyzji |
 
@@ -65,15 +65,22 @@ Aktualizować po zamknięciu każdej fazy.
 
 ---
 
-## Faza 4: Deployment i środowiska
+## Faza 4: Deployment i środowiska — ✅ Kod/configi zrobione, decyzje organizacyjne zostają
 
-- [ ] Decyzja o hostingu backendu (Railway/Render/inny)
-- [ ] `Dockerfile` produkcyjny dla `server` (obecny `docker-compose.yml` jest tylko dev)
-- [ ] Konfiguracja Vercel dla `client` (`vercel.json`, env per środowisko)
-- [ ] Rozdzielenie env vars: development / preview / production
-- [ ] Automatyczne deploye: `main` → produkcja, PR → preview
-- [ ] Strategia backupów bazy danych
-- [ ] Docelowy storage obrazów w produkcji (realny S3 vs self-hosted MinIO)
+- [x] `Dockerfile` produkcyjny dla `server` (root, multi-stage, generyczny — działa z dowolnym hostingiem Docker)
+- [x] `client/vercel.json` (SPA rewrite dla React Router)
+- [x] `docs/DEPLOYMENT.md` — pełna lista env vars per środowisko, architektura wdrożenia, decyzje
+- [x] CI: krok `docker build` na każdym PR, żeby Dockerfile nie psuł się bez wykrycia
+- [x] Docelowy storage obrazów w produkcji: **realny S3/R2** (decyzja, zero zmian w kodzie — już wspierane przez `@aws-sdk/client-s3`)
+- [x] Baza danych w produkcji: **generyczny managed Postgres**, niezależny od Supabase (Faza 6 zostaje opcjonalna)
+
+**Wymaga decyzji/dostępu, którego nie mam — do zrobienia przez Was/dev'a:**
+- [ ] Wybór konkretnego hostingu backendu (Railway/Render/Fly.io/VPS) i jego podłączenie do repo
+- [ ] Założenie produkcyjnego bucketu S3/R2 + klucze
+- [ ] Założenie projektu Vercel + ustawienie Root Directory = `client` + zmienne `VITE_API_URL` per środowisko
+- [ ] Wybór hostingu Postgresa + **weryfikacja, że ma automatyczne backupy i jaki jest retention**
+- [ ] Wygenerowanie pierwszej migracji Prisma (`migrate dev --name init`) przed pierwszym realnym deployem — patrz `docs/DEPLOYMENT.md`, blocker zostawiony z Fazy 3
+- [ ] Nowe, unikalne `JWT_SECRET`/`JWT_REFRESH_SECRET`/`ENCRYPTION_KEY` dla produkcji (nie reużywać wartości dev/testowych)
 
 ---
 

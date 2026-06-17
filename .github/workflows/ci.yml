@@ -56,3 +56,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build production Docker image
+        run: docker build -f Dockerfile .
