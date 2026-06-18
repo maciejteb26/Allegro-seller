@@ -13,7 +13,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "supabase:check": "node scripts/check-supabase-env.js"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

@@ -7,12 +7,12 @@ są potrzebne per środowisko, oraz decyzje przyjęte na razie (do ewentualnej z
 
 - **`client`** (React + Vite, statyczny build) → Vercel **lub** Render Static Site (patrz [`docs/RENDER.md`](./RENDER.md)).
 - **`server`** (Express + Prisma) → hosting z Dockerfile (Render, Railway, Fly.io, VPS). Root `Dockerfile` buduje obraz z całego monorepo (npm workspaces hoistują `node_modules`, więc nie da się zbudować `server/` w izolacji od reszty repo).
-- **Baza danych**: managed Postgres (Render Postgres, Supabase, itp.).
-- **Storage obrazów**: w produkcji prawdziwy S3 (AWS lub R2). MinIO z `docker-compose.yml` zostaje tylko do lokalnego dev.
+- **Baza danych + storage**: [Supabase](https://supabase.com) (Postgres + Storage S3). Instrukcja: [`docs/SUPABASE.md`](./SUPABASE.md).
+- **Storage obrazów lokalnie**: MinIO z `docker-compose.yml`.
 
-### Render.com (zalecane — full stack)
+### Render.com + Supabase (produkcja)
 
-Plik `render.yaml` w root projektu definiuje Blueprint: API (Docker), static site (frontend) i Postgres. Szczegóły: [`docs/RENDER.md`](./RENDER.md).
+`render.yaml` — API i static site na Render, **bez** Render Postgres. Baza i pliki na Supabase. Szczegóły: [`docs/RENDER.md`](./RENDER.md), [`docs/SUPABASE.md`](./SUPABASE.md).
 
 ## ⚠️ Migracje Prisma
 
@@ -30,8 +30,9 @@ Pełna lista w `.env.example`. Najważniejsze różnice między środowiskami:
 |---|---|---|
 | `NODE_ENV` | `development` | `production` |
 | `CLIENT_URL` | `http://localhost:5173` | `https://szybkiewystawianie.pl` (lub URL Render/Vercel) |
-| `DATABASE_URL` / `DIRECT_URL` | lokalny docker-compose Postgres | connection string managed Postgres |
-| `S3_*` | MinIO (`localhost:9000`, `minioadmin`) | prawdziwy bucket S3/R2 + realne klucze |
+| `DATABASE_URL` / `DIRECT_URL` | lokalny docker-compose Postgres | Supabase pooler (`6543` + `pgbouncer`) / direct (`5432`) |
+| `SUPABASE_URL` | — | `https://[ref].supabase.co` (auto-endpoint Storage) |
+| `S3_*` | MinIO (`localhost:9000`) | Supabase Storage S3 keys lub jawny endpoint |
 | `ALLEGRO_MOCK` | `true` | `true` do momentu realnej integracji z Allegro (patrz `ROADMAP.md`) |
 | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY` | wartości testowe | **nowe, losowe** wartości — nigdy nie reużywać dev/dev-testowych sekretów na produkcji |
 

@@ -13,7 +13,7 @@ Aktualizować po zamknięciu każdej fazy.
 | 3 | Testy integracyjne i e2e | ✅ Zrobione (PR #3) |
 | 4 | Deployment i środowiska | ✅ Kod/configi zrobione (PR #4), decyzje organizacyjne zostają |
 | 5 | Repo / organizacja / proces | ✅ Kod/configi zrobione (PR #5), decyzje admina/organizacji zostają |
-| 6 | Migracja DB na Supabase (opcjonalna) | ⬜ Do decyzji |
+| 6 | Supabase (Postgres + Storage) | ✅ Konfiguracja gotowa |
 
 ---
 
@@ -71,8 +71,7 @@ Aktualizować po zamknięciu każdej fazy.
 - [x] `client/vercel.json` (SPA rewrite dla React Router)
 - [x] `docs/DEPLOYMENT.md` — pełna lista env vars per środowisko, architektura wdrożenia, decyzje
 - [x] CI: krok `docker build` na każdym PR, żeby Dockerfile nie psuł się bez wykrycia
-- [x] Docelowy storage obrazów w produkcji: **realny S3/R2** (decyzja, zero zmian w kodzie — już wspierane przez `@aws-sdk/client-s3`)
-- [x] Baza danych w produkcji: **generyczny managed Postgres**, niezależny od Supabase (Faza 6 zostaje opcjonalna)
+- [x] Baza i storage w produkcji: **Supabase** (Postgres + Storage S3) — patrz `docs/SUPABASE.md`
 
 **Wymaga decyzji/dostępu, którego nie mam — do zrobienia przez Was/dev'a:**
 - [ ] Wybór konkretnego hostingu backendu (Railway/Render/Fly.io/VPS) i jego podłączenie do repo
@@ -98,14 +97,19 @@ Aktualizować po zamknięciu każdej fazy.
 
 ---
 
-## Faza 6 (opcjonalna): Migracja bazy na Supabase
+## Faza 6: Supabase — ✅ Konfiguracja gotowa (wariant lekki)
 
-- [ ] Decyzja: tylko hosting Postgresa na Supabase, czy pełne przejście (Auth + Storage + RLS)
-- [ ] Wariant lekki: zmiana `DATABASE_URL` na Supabase + test migracji Prisma
-- [ ] Wariant pełny: migracja `auth.service.ts` / `auth.middleware.ts` na Supabase Auth
-- [ ] Wariant pełny: migracja image upload na Supabase Storage
-- [ ] Wariant pełny: RLS policies jako dodatkowa warstwa do istniejącego filtra `userId`
-- [ ] Monitoring Supabase: logi database/auth/edge functions/API + alerty (wymóg `project-rules.md` pkt 11)
+- [x] Postgres na Supabase + Prisma (`DATABASE_URL` pooler, `DIRECT_URL` migracje)
+- [x] Storage na Supabase (S3 API, auto-endpoint z `SUPABASE_URL`)
+- [x] `docs/SUPABASE.md`, `.env.supabase.example`, `supabase/storage-bucket.sql`
+- [x] `render.yaml` bez Render Postgres — env z Supabase
+- [x] Skrypt `npm run supabase:check --workspace=server`
+- [x] Auth aplikacji pozostaje własny JWT (bez Supabase Auth)
+
+**Opcjonalnie na przyszłość (wariant pełny):**
+- [ ] Migracja `auth.service.ts` na Supabase Auth
+- [ ] RLS policies jako dodatkowa warstwa bezpieczeństwa
+- [ ] Monitoring Supabase + alerty (Dashboard Logs)
 
 ---
 

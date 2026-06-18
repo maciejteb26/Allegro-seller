@@ -4,6 +4,7 @@ build/
 .env
 .env.*
 !.env.example
+!.env.supabase.example
 server/.env
 **/.env
 **/.env.local
@@ -14,5 +15,7 @@ server/.env
 Thumbs.db
 coverage/
 .nyc_output/
+supabase/.branches
+supabase/.temp
 server/prisma/migrations/*
 !server/prisma/migrations/.gitkeep

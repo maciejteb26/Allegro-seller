@@ -8,7 +8,7 @@ Narzędzie SaaS do publikacji ogłoszeń części samochodowych na Allegro.
 docker-compose up -d && npm install && npm run dev
 ```
 
-Wdrożenie produkcyjne na Render: patrz [`docs/RENDER.md`](docs/RENDER.md).
+Wdrożenie produkcyjne: Render + Supabase — patrz [`docs/RENDER.md`](docs/RENDER.md) i [`docs/SUPABASE.md`](docs/SUPABASE.md).
 
 ## Wymagania
 

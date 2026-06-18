@@ -10,8 +10,9 @@ Modular monolith — monorepo z dwoma pakietami:
 
 ## Stack
 **Frontend:** React 18, TypeScript, Vite, React Router v6, Zustand, TanStack Query, React Hook Form, Zod, Tailwind CSS, shadcn/ui, Lucide React
-**Backend:** Node.js, Express, TypeScript, PostgreSQL, Prisma ORM, JWT, bcrypt, AWS S3 (MinIO lokalnie), Multer, Sharp, Anthropic SDK
-**Infra:** Docker, docker-compose (postgres + minio)
+**Backend:** Node.js, Express, TypeScript, PostgreSQL, Prisma ORM, JWT, bcrypt, S3-compatible storage (MinIO lokalnie / Supabase Storage prod), Multer, Sharp, Anthropic SDK
+**Infra dev:** Docker, docker-compose (postgres + minio)
+**Infra prod:** Render (API + static) + Supabase (Postgres + Storage) — patrz `docs/SUPABASE.md`
 
 ## Zasady implementacji
 
