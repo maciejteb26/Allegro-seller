@@ -2,7 +2,7 @@ export function LandingJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'Allegro Seller',
+    name: 'szybkiewystawianie.pl',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description:

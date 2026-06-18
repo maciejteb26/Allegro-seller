@@ -30,7 +30,7 @@ export const env = {
   AI_MOCK: !process.env.ANTHROPIC_API_KEY && process.env.AI_MOCK !== 'false',
   ALLEGRO_SANDBOX: process.env.ALLEGRO_SANDBOX !== 'false',
   ALLEGRO_USER_AGENT:
-    process.env.ALLEGRO_USER_AGENT ?? 'AllegroSeller/0.1.0 (+https://example.com/allegro-seller)',
+    process.env.ALLEGRO_USER_AGENT ?? 'SzybkieWystawianie/0.1.0 (+https://szybkiewystawianie.pl)',
   ALLEGRO_CLIENT_ID: process.env.ALLEGRO_CLIENT_ID ?? '',
   ALLEGRO_CLIENT_SECRET: process.env.ALLEGRO_CLIENT_SECRET ?? '',
   ALLEGRO_REDIRECT_URI: process.env.ALLEGRO_REDIRECT_URI ?? '',

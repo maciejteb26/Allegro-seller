@@ -12,7 +12,7 @@ export function LandingSeoSection() {
               Tytuły i opisy, które pomagają w wyszukiwarce Allegro
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-ink-muted">
-              Allegro Seller generuje treści według reguł platformy — nie ogólny tekst marketingowy,
+              szybkiewystawianie.pl generuje treści według reguł platformy — nie ogólny tekst marketingowy,
               ale oferta zoptymalizowana pod algorytm wyszukiwania i katalog produktów.
             </p>
 

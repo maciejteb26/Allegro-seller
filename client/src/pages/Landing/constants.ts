@@ -67,7 +67,7 @@ export const STATS = [
 
 export const FAQ = [
   {
-    q: 'Czy Allegro Seller wystawia oferty na Allegro?',
+    q: 'Czy szybkiewystawianie.pl wystawia oferty na Allegro?',
     a: 'Tak — integracja z Allegro API (OAuth). Domyślnie tryb deweloperski MOCK; na produkcji prawdziwa publikacja.',
   },
   {

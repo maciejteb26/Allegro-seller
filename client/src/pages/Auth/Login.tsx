@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-sm border border-gray-200">
         <div className="text-center">
           <Link to="/" className="font-display text-2xl font-bold text-gray-900 hover:text-primary-600">
-            Allegro Seller
+            szybkiewystawianie.pl
           </Link>
           <p className="mt-2 text-sm text-gray-600">Zaloguj się do swojego konta</p>
         </div>

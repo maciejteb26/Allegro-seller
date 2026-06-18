@@ -22,7 +22,7 @@ export async function uploadImageFromUrl(
       responseType: 'arraybuffer',
       timeout: 12_000,
       maxRedirects: 3,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AllegroSeller/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SzybkieWystawianie/1.0)' },
     });
     return uploadImage(Buffer.from(response.data), listingId, order, isMain);
   } catch {

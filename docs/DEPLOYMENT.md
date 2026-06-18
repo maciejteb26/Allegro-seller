@@ -1,31 +1,24 @@
 # Deployment
 
-Ten dokument opisuje, jak wdrożyć Allegro Seller na produkcję, jakie zmienne środowiskowe
+Ten dokument opisuje, jak wdrożyć szybkiewystawianie.pl na produkcję, jakie zmienne środowiskowe
 są potrzebne per środowisko, oraz decyzje przyjęte na razie (do ewentualnej zmiany).
 
 ## Architektura wdrożenia
 
-- **`client`** (React + Vite, statyczny build) → Vercel. Root Directory projektu w Vercel
-  musi być ustawione na `client` (do zrobienia w dashboardzie — nie da się tego wpisać do
-  pliku w repo). `client/vercel.json` zawiera SPA rewrite, bez którego odświeżenie np.
-  `/listings/123/edit` zwróci 404.
-- **`server`** (Express + Prisma) → dowolny hosting wspierający Dockerfile (Railway, Render,
-  Fly.io, VPS). Root `Dockerfile` buduje obraz z całego monorepo (npm workspaces hoistują
-  `node_modules`, więc nie da się zbudować `server/` w izolacji od reszty repo).
-- **Baza danych**: generyczny managed Postgres, niezależny od konkretnego dostawcy backendu.
-  (Migracja na Supabase jest odłożona — `ROADMAP.md`, Faza 6.)
-- **Storage obrazów**: w produkcji prawdziwy S3 (AWS lub R2 — kod używa standardowego
-  S3-compatible API przez `@aws-sdk/client-s3`, nie wymaga zmian kodu, tylko innych wartości
-  `S3_*`). MinIO z `docker-compose.yml` zostaje tylko do lokalnego dev.
+- **`client`** (React + Vite, statyczny build) → Vercel **lub** Render Static Site (patrz [`docs/RENDER.md`](./RENDER.md)).
+- **`server`** (Express + Prisma) → hosting z Dockerfile (Render, Railway, Fly.io, VPS). Root `Dockerfile` buduje obraz z całego monorepo (npm workspaces hoistują `node_modules`, więc nie da się zbudować `server/` w izolacji od reszty repo).
+- **Baza danych**: managed Postgres (Render Postgres, Supabase, itp.).
+- **Storage obrazów**: w produkcji prawdziwy S3 (AWS lub R2). MinIO z `docker-compose.yml` zostaje tylko do lokalnego dev.
 
-## ⚠️ Blocker przed pierwszym realnym deployem
+### Render.com (zalecane — full stack)
 
-`server/prisma/migrations/` zawiera tylko `.gitkeep` — projekt nigdy nie miał wygenerowanej
-historii migracji Prisma (schemat był zarządzany przez `prisma db push` lokalnie i w testach
-integracyjnych). **Przed pierwszym wdrożeniem na realną bazę produkcyjną wygenerujcie pierwszą
-migrację** (`cd server && npx prisma migrate dev --name init`) i używajcie `prisma migrate
-deploy` (nie `db push`) do aplikowania zmian na produkcji. Bez tego nie ma odtwarzalnej,
-wersjonowanej historii schematu bazy.
+Plik `render.yaml` w root projektu definiuje Blueprint: API (Docker), static site (frontend) i Postgres. Szczegóły: [`docs/RENDER.md`](./RENDER.md).
+
+## ⚠️ Migracje Prisma
+
+Pierwsza migracja (`server/prisma/migrations/20250618194500_init/`) jest w repozytorium.
+Na produkcji stosuj **`prisma migrate deploy`** (w Dockerze uruchamiane automatycznie przez
+`server/docker-entrypoint.sh`). Lokalnie: `npm run prisma:migrate --workspace=server`.
 
 ## Zmienne środowiskowe per środowisko
 
@@ -36,7 +29,7 @@ Pełna lista w `.env.example`. Najważniejsze różnice między środowiskami:
 | Zmienna | Dev | Produkcja |
 |---|---|---|
 | `NODE_ENV` | `development` | `production` |
-| `CLIENT_URL` | `http://localhost:5173` | realna domena Vercel (np. `https://allegro-seller.vercel.app`) |
+| `CLIENT_URL` | `http://localhost:5173` | `https://szybkiewystawianie.pl` (lub URL Render/Vercel) |
 | `DATABASE_URL` / `DIRECT_URL` | lokalny docker-compose Postgres | connection string managed Postgres |
 | `S3_*` | MinIO (`localhost:9000`, `minioadmin`) | prawdziwy bucket S3/R2 + realne klucze |
 | `ALLEGRO_MOCK` | `true` | `true` do momentu realnej integracji z Allegro (patrz `ROADMAP.md`) |

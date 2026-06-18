@@ -1,5 +1,5 @@
 {
-  "name": "@allegro-seller/server",
+  "name": "@szybkiewystawianie/server",
   "version": "1.0.0",
   "private": true,
   "main": "dist/index.js",
@@ -11,8 +11,12 @@
     "test:int": "node scripts/test-int.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",

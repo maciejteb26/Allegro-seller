@@ -1,4 +1,4 @@
-# Allegro Seller
+# szybkiewystawianie.pl
 
 Narzędzie SaaS do publikacji ogłoszeń części samochodowych na Allegro.
 
@@ -7,6 +7,8 @@ Narzędzie SaaS do publikacji ogłoszeń części samochodowych na Allegro.
 ```bash
 docker-compose up -d && npm install && npm run dev
 ```
+
+Wdrożenie produkcyjne na Render: patrz [`docs/RENDER.md`](docs/RENDER.md).
 
 ## Wymagania
 

@@ -40,7 +40,7 @@ export function LandingFooter() {
     <footer className="border-t border-stone-200 bg-white py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 sm:flex-row sm:px-6">
         <div>
-          <p className="font-display font-semibold text-ink">Allegro Seller</p>
+          <p className="font-display font-semibold text-ink">szybkiewystawianie.pl</p>
           <p className="mt-1 text-sm text-ink-faint">
             Wystawianie ofert na Allegro z Excela i generowaniem SEO
           </p>
@@ -50,7 +50,7 @@ export function LandingFooter() {
           <Link to="/register" className="hover:text-primary-600">Rejestracja</Link>
           <a href="#seo" className="hover:text-primary-600">SEO Allegro</a>
         </nav>
-        <p className="text-sm text-ink-faint">© {new Date().getFullYear()} Allegro Seller</p>
+        <p className="text-sm text-ink-faint">© {new Date().getFullYear()} szybkiewystawianie.pl</p>
       </div>
     </footer>
   );

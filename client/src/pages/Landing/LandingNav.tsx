@@ -23,7 +23,7 @@ export function LandingNav() {
             AS
           </span>
           <span className="font-display text-lg font-semibold tracking-tight text-ink">
-            Allegro Seller
+            szybkiewystawianie.pl
           </span>
         </Link>
 

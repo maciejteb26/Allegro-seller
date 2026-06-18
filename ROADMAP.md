@@ -45,7 +45,7 @@ Aktualizować po zamknięciu każdej fazy.
 
 ## Faza 3: Testy integracyjne i e2e — ✅ Zrobione
 
-- [x] `tests/integration` z testową bazą Postgres (`allegro_seller_test`, osobna od dev)
+- [x] `tests/integration` z testową bazą Postgres (`szybkiewystawianie_test`, osobna od dev)
 - [x] Integracyjne: pełny flow auth (register → login → refresh → logout) + przypadki błędne
 - [x] Integracyjne: listing CRUD + autoryzacja (dostęp do listingu innego `userId` → 404)
 - [x] Integracyjne: publish flow (mock Allegro service) + przypadek disconnected platform

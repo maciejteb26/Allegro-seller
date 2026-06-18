@@ -34,7 +34,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-xs font-bold text-white">
             AS
           </span>
-          Allegro Seller
+          szybkiewystawianie.pl
         </Link>
       </div>
 

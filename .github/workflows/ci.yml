@@ -14,7 +14,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: allegro_seller_test
+          POSTGRES_DB: szybkiewystawianie_test
         ports:
           - 5432:5432
         options: >-
@@ -51,8 +51,8 @@ jobs:
       - name: Integration tests (server)
         run: npm run test:int --workspace=server
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/allegro_seller_test
-          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/allegro_seller_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/szybkiewystawianie_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/szybkiewystawianie_test
 
       - name: Test client
         run: npm run test --workspace=client

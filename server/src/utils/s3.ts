@@ -7,9 +7,8 @@ export function getS3(): S3Client {
   if (!instance) {
     instance = new S3Client({
       region: env.S3_REGION,
-      endpoint: env.S3_ENDPOINT,
+      ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT, forcePathStyle: true } : {}),
       credentials: { accessKeyId: env.S3_ACCESS_KEY, secretAccessKey: env.S3_SECRET_KEY },
-      forcePathStyle: true, // required for MinIO
     });
   }
   return instance;

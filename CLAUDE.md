@@ -1,4 +1,4 @@
-# Allegro Seller — CLAUDE.md
+# szybkiewystawianie.pl — CLAUDE.md
 
 ## Opis projektu
 Narzędzie SaaS do wystawiania ogłoszeń części samochodowych/motocyklowych na Allegro.
