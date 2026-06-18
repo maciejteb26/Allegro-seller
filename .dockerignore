@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.github
+client/src
+client/public
+e2e
+playwright.config.ts
+**/tests
+.env
+.env.*
+!.env.example
+*.md
+.vscode
+.cursor
