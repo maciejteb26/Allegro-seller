@@ -106,7 +106,7 @@ export async function getAllegroOAuthStart(req: Request, res: Response, next: Ne
   }
 }
 
-export async function getAllegroOAuthCallback(req: Request, res: Response, next: NextFunction) {
+export async function getAllegroOAuthCallback(req: Request, res: Response, _next: NextFunction) {
   try {
     const code = typeof req.query.code === 'string' ? req.query.code : '';
     const state = typeof req.query.state === 'string' ? req.query.state : '';
@@ -116,7 +116,7 @@ export async function getAllegroOAuthCallback(req: Request, res: Response, next:
     }
     await allegroOAuthService.exchangeCodeAndStoreConnection(code, state);
     res.send(oauthHtml('success', 'ALLEGRO'));
-  } catch (error) {
+  } catch (_error) {
     res.send(oauthHtml('error', 'ALLEGRO', 'Blad wymiany tokenu'));
   }
 }

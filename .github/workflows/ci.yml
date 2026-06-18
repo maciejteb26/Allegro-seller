@@ -42,6 +42,9 @@ jobs:
       - name: Typecheck client
         run: npx tsc --noEmit --project client/tsconfig.json
 
+      - name: Lint
+        run: npm run lint
+
       - name: Test server
         run: npm run test --workspace=server
 

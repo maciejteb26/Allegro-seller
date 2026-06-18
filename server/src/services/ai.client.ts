@@ -3,7 +3,6 @@ import { env } from '../utils/env';
 import {
   AI_MAX_TOKENS_PARSER,
   AI_MAX_TOKENS_SEO,
-  AI_MODEL_DEFAULT,
   AI_TEMPERATURE_PARSER,
   AI_TEMPERATURE_SEO,
 } from '../constants/ai.constants';
