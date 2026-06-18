@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import { prisma } from '../utils/prisma';
 import { env } from '../utils/env';
 import { AppError } from '../middleware/error.middleware';
@@ -18,8 +19,12 @@ function signAccessToken(userId: string): string {
 }
 
 function signRefreshToken(userId: string): string {
+  // jwtid gwarantuje unikalność tokenu nawet przy wielu logowaniach tego samego
+  // usera w tej samej sekundzie (inaczej payload+exp są identyczne -> ten sam
+  // string -> konflikt unique constraint na RefreshToken.token).
   return jwt.sign({ userId }, env.JWT_REFRESH_SECRET, {
     expiresIn: `${REFRESH_TOKEN_TTL_DAYS}d`,
+    jwtid: randomUUID(),
   });
 }
 

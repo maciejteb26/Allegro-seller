@@ -8,6 +8,20 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: allegro_seller_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +44,12 @@ jobs:
 
       - name: Test server
         run: npm run test --workspace=server
+
+      - name: Integration tests (server)
+        run: npm run test:int --workspace=server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/allegro_seller_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/allegro_seller_test
 
       - name: Test client
         run: npm run test --workspace=client
