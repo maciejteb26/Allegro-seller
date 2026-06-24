@@ -7,6 +7,11 @@ export interface DashboardStats {
   draftListings: number;
   listingsByPlatform: { platform: Platform; active: number }[];
   recentListings: Listing[];
+  allegro?: {
+    visitsCount: number;
+    watchersCount: number;
+    soldCount: number;
+  };
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {

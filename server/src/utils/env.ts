@@ -29,19 +29,25 @@ export const env = {
   S3_SECRET_KEY: process.env.S3_SECRET_KEY ?? '',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '',
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? 'claude-haiku-4-5-20251001',
-  AI_MOCK: !process.env.ANTHROPIC_API_KEY && process.env.AI_MOCK !== 'false',
+  AI_MOCK: process.env.AI_MOCK === 'true',
   ALLEGRO_SANDBOX: process.env.ALLEGRO_SANDBOX !== 'false',
   ALLEGRO_USER_AGENT:
     process.env.ALLEGRO_USER_AGENT ?? 'SzybkieWystawianie/0.1.0 (+https://szybkiewystawianie.pl)',
   ALLEGRO_CLIENT_ID: process.env.ALLEGRO_CLIENT_ID ?? '',
   ALLEGRO_CLIENT_SECRET: process.env.ALLEGRO_CLIENT_SECRET ?? '',
   ALLEGRO_REDIRECT_URI: process.env.ALLEGRO_REDIRECT_URI ?? '',
-  ALLEGRO_MOCK: process.env.ALLEGRO_MOCK !== 'false',
+  ALLEGRO_MOCK: process.env.ALLEGRO_MOCK === 'true',
   SERPAPI_KEY: process.env.SERPAPI_KEY ?? '',
   GOOGLE_CSE_API_KEY: process.env.GOOGLE_CSE_API_KEY ?? '',
   GOOGLE_CSE_CX: process.env.GOOGLE_CSE_CX ?? '',
-  EXTERNAL_SEARCH_MOCK:
-    process.env.EXTERNAL_SEARCH_MOCK !== 'false' &&
-    !process.env.SERPAPI_KEY &&
-    !process.env.GOOGLE_CSE_API_KEY,
+  EXTERNAL_SEARCH_MOCK: process.env.EXTERNAL_SEARCH_MOCK === 'true',
+  EMAIL_FROM: process.env.EMAIL_FROM ?? 'noreply@szybkiewystawianie.pl',
+  RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
+  SMTP_HOST: process.env.SMTP_HOST ?? '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT ?? '587', 10),
+  SMTP_USER: process.env.SMTP_USER ?? '',
+  SMTP_PASS: process.env.SMTP_PASS ?? '',
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  EMAIL_MOCK: process.env.EMAIL_MOCK === 'true',
+  API_PUBLIC_URL: process.env.API_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? '3001'}`,
 };

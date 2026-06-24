@@ -6,6 +6,7 @@ import * as listingService from '../services/listing.service';
 import type { CreateListingData } from '../services/listing.service';
 import * as imageService from '../services/image.service';
 import { ListingStatus, Platform, PlatformStatus } from '@prisma/client';
+import { syncAllegroOfferStats } from '../services/allegro-stats.service';
 import * as titleGeneratorService from '../services/title-generator.service';
 import * as marginService from '../services/margin.service';
 import { getPlatformService } from '../services/platforms';
@@ -271,7 +272,15 @@ export async function getPublishStatus(req: Request, res: Response, next: NextFu
 export async function getDashboardStats(req: Request, res: Response, next: NextFunction) {
   try {
     const uid = userId(req);
-    const [totalListings, activeListings, draftListings, recentListings, byPlatform] = await Promise.all([
+
+    try {
+      await syncAllegroOfferStats(uid);
+    } catch {
+      // Statystyki Allegro są opcjonalne — dashboard działa bez nich
+    }
+
+    const [totalListings, activeListings, draftListings, recentListings, byPlatform, allegroTotals] =
+      await Promise.all([
       prisma.listing.count({ where: { userId: uid } }),
       prisma.listing.count({ where: { userId: uid, status: ListingStatus.ACTIVE } }),
       prisma.listing.count({ where: { userId: uid, status: ListingStatus.DRAFT } }),
@@ -281,6 +290,10 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
         where: { listing: { userId: uid }, status: PlatformStatus.ACTIVE },
         _count: { _all: true },
       }),
+      prisma.platformListing.aggregate({
+        where: { listing: { userId: uid }, platform: Platform.ALLEGRO, status: PlatformStatus.ACTIVE },
+        _sum: { visitsCount: true, watchersCount: true, soldCount: true },
+      }),
     ]);
 
     res.json({
@@ -289,6 +302,11 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
       draftListings,
       listingsByPlatform: byPlatform.map((item) => ({ platform: item.platform, active: item._count._all })),
       recentListings,
+      allegro: {
+        visitsCount: allegroTotals._sum.visitsCount ?? 0,
+        watchersCount: allegroTotals._sum.watchersCount ?? 0,
+        soldCount: allegroTotals._sum.soldCount ?? 0,
+      },
     });
   } catch (err) {
     next(err);

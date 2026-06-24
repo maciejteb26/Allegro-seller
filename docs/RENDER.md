@@ -20,6 +20,7 @@ Backend i frontend na Render; **baza i storage na Supabase**. Szczegóły Supaba
    - `SUPABASE_URL`, `SUPABASE_PROJECT_REF`
    - `S3_ACCESS_KEY`, `S3_SECRET_KEY` — Storage → S3 Access Keys
    - `ENCRYPTION_KEY` — dokładnie 32 znaki
+   - `RESEND_API_KEY`, `EMAIL_FROM` — patrz [`docs/EMAIL.md`](./EMAIL.md)
    - `ALLEGRO_REDIRECT_URI` — URL callback API
 4. Po deployu: seed (`npm run prisma:seed` z produkcyjnym `DIRECT_URL`)
 5. Domena: Render → Custom Domains → `szybkiewystawianie.pl`

@@ -17,3 +17,11 @@ export async function getMe(): Promise<User> {
   const { data } = await apiClient.get<User>('/auth/me');
   return data;
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+  await apiClient.post('/auth/forgot-password', { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await apiClient.post('/auth/reset-password', { token, password });
+}

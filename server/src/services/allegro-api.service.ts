@@ -95,6 +95,53 @@ export async function saveAllegroMappings(
   return { updated: items.length };
 }
 
+interface AllegroSellerOfferSummary {
+  id: string;
+  stats?: { visitsCount?: number; watchersCount?: number };
+  stock?: { sold?: number };
+}
+
+interface AllegroOffersListResponse {
+  offers?: AllegroSellerOfferSummary[];
+}
+
+export async function getAllegroSellerOffers(
+  userId: string,
+  offerIds: string[],
+): Promise<AllegroSellerOfferSummary[]> {
+  if (offerIds.length === 0) return [];
+
+  const token = await getAllegroToken(userId);
+  const wanted = new Set(offerIds);
+  const found = new Map<string, AllegroSellerOfferSummary>();
+  let offset = 0;
+  const limit = 100;
+
+  while (found.size < offerIds.length) {
+    const url = `${ALLEGRO_BASE_URL}/sale/offers?publication.status=ACTIVE&limit=${limit}&offset=${offset}`;
+    const result = await requestWithRetry<AllegroOffersListResponse>(url, token);
+    const batch = result.data.offers ?? [];
+    if (batch.length === 0) break;
+
+    for (const offer of batch) {
+      if (wanted.has(offer.id)) found.set(offer.id, offer);
+    }
+
+    offset += limit;
+    if (batch.length < limit || offset > 5000) break;
+  }
+
+  for (const id of offerIds) {
+    if (found.has(id)) continue;
+    const url = `${ALLEGRO_BASE_URL}/sale/offers?offer.id=${encodeURIComponent(id)}`;
+    const result = await requestWithRetry<AllegroOffersListResponse>(url, token);
+    const offer = result.data.offers?.[0];
+    if (offer) found.set(offer.id, offer);
+  }
+
+  return [...found.values()];
+}
+
 async function getAllegroToken(userId: string): Promise<string> {
   // Auto-refresh jeśli token wygasa w ciągu 5 minut
   return getValidAccessToken(userId);

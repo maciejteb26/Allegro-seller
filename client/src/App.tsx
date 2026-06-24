@@ -2,11 +2,14 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
+import { GuestRoute } from '@/components/shared/GuestRoute';
 import { ToastProvider } from '@/components/ui/toast';
 import { useAuthStore } from '@/store/auth.store';
 import { getMe } from '@/api/auth.api';
 import LoginPage from '@/pages/Auth/Login';
 import RegisterPage from '@/pages/Auth/Register';
+import ForgotPasswordPage from '@/pages/Auth/ForgotPassword';
+import ResetPasswordPage from '@/pages/Auth/ResetPassword';
 import LandingPage from '@/pages/Landing';
 import DashboardPage from '@/pages/Dashboard';
 import ListingsPage from '@/pages/Listings';
@@ -42,8 +45,12 @@ export default function App() {
         <AuthLoader>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route element={<GuestRoute />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+            </Route>
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>

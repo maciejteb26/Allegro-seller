@@ -17,3 +17,11 @@ export const aiParserRateLimit = rateLimit({
   legacyHeaders: false,
   message: { error: 'AI parser rate limit exceeded.' },
 });
+
+export const forgotPasswordRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: isDev ? 1_000 : 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zbyt wiele prób resetu hasła. Spróbuj ponownie za godzinę.' },
+});

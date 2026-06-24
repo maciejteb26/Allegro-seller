@@ -2,13 +2,14 @@
 
 Narzędzie SaaS do publikacji ogłoszeń części samochodowych na Allegro.
 
+Repozytorium: [github.com/maciejteb26/szybkiewystawianie.pl](https://github.com/maciejteb26/szybkiewystawianie.pl)
 ## Szybki start
 
 ```bash
 docker-compose up -d && npm install && npm run dev
 ```
 
-Wdrożenie produkcyjne: Render + Supabase — patrz [`docs/RENDER.md`](docs/RENDER.md) i [`docs/SUPABASE.md`](docs/SUPABASE.md).
+Wdrożenie produkcyjne: Render + Supabase — patrz [`docs/RENDER.md`](docs/RENDER.md), [`docs/SUPABASE.md`](docs/SUPABASE.md) i [`docs/EMAIL.md`](docs/EMAIL.md) (Resend / reset hasła).
 
 ## Wymagania
 

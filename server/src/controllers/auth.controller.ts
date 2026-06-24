@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import * as authService from '../services/auth.service';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { PASSWORD_MIN_LENGTH } from '../constants/auth';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -20,6 +21,15 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(PASSWORD_MIN_LENGTH),
 });
 
 function setTokenCookies(res: Response, tokens: { accessToken: string; refreshToken: string }) {
@@ -86,6 +96,26 @@ export async function me(req: Request, res: Response, next: NextFunction) {
   try {
     const user = await authService.getMe((req as AuthRequest).userId);
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function forgotPassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const result = await authService.requestPasswordReset(email);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+    await authService.resetPassword(token, password);
+    res.json({ message: 'Hasło zostało zmienione. Możesz się zalogować.' });
   } catch (err) {
     next(err);
   }

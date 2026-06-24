@@ -2,6 +2,10 @@ import request from 'supertest';
 import { app } from '../../src/app';
 import { resetDb } from './helpers/db';
 import { uniqueEmail, cookieHeader } from './helpers/fixtures';
+import {
+  clearLastPasswordResetLinkForTests,
+  getLastPasswordResetLinkForTests,
+} from '../../src/services/email.service';
 
 beforeEach(async () => {
   await resetDb();
@@ -50,5 +54,39 @@ describe('auth flow', () => {
   it('rejects requests to protected routes without a token', async () => {
     const res = await request(app).get('/api/auth/me');
     expect(res.status).toBe(401);
+  });
+
+  it('resets password via forgot-password flow', async () => {
+    const email = uniqueEmail('reset');
+    const oldPassword = 'password123';
+    const newPassword = 'newpassword99';
+
+    await request(app).post('/api/auth/register').send({ email, password: oldPassword, name: 'Reset Tester' });
+    clearLastPasswordResetLinkForTests();
+
+    const forgotRes = await request(app).post('/api/auth/forgot-password').send({ email });
+    expect(forgotRes.status).toBe(200);
+
+    const resetLink = getLastPasswordResetLinkForTests();
+    expect(resetLink).toBeTruthy();
+    const token = new URL(resetLink!).searchParams.get('token');
+    expect(token).toBeTruthy();
+
+    const resetRes = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token, password: newPassword });
+    expect(resetRes.status).toBe(200);
+
+    const oldLogin = await request(app).post('/api/auth/login').send({ email, password: oldPassword });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(app).post('/api/auth/login').send({ email, password: newPassword });
+    expect(newLogin.status).toBe(200);
+  });
+
+  it('returns same message for unknown email on forgot-password', async () => {
+    const res = await request(app).post('/api/auth/forgot-password').send({ email: uniqueEmail('ghost') });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain('Jeśli konto');
   });
 });

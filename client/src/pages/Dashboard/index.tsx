@@ -1,4 +1,4 @@
-import { Package, PlugZap, TrendingUp } from 'lucide-react';
+import { Package, PlugZap, TrendingUp, Eye, Heart, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,14 @@ export default function DashboardPage() {
         <StatCard label="Połączone platformy" value={data?.listingsByPlatform?.length ?? 0} icon={PlugZap} />
         <StatCard label="Ogłoszenia łącznie" value={data?.totalListings ?? 0} icon={TrendingUp} />
       </div>
+
+      {(data?.allegro?.visitsCount ?? 0) > 0 || (data?.allegro?.watchersCount ?? 0) > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard label="Wyświetlenia Allegro" value={data?.allegro?.visitsCount ?? 0} icon={Eye} />
+          <StatCard label="Obserwujący Allegro" value={data?.allegro?.watchersCount ?? 0} icon={Heart} />
+          <StatCard label="Sprzedane sztuki" value={data?.allegro?.soldCount ?? 0} icon={ShoppingBag} />
+        </div>
+      ) : null}
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Ostatnie ogłoszenia</h2>

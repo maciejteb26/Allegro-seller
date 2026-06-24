@@ -8,8 +8,11 @@ import orderRoutes from './order.routes';
 import dashboardRoutes from './dashboard.routes';
 import importRoutes from './import.routes';
 import clientRoutes from './client.routes';
+import publicRoutes from './public.routes';
 
 const router = Router();
+
+router.use('/public', publicRoutes);
 
 router.use('/auth', authRoutes);
 router.use('/clients', clientRoutes);

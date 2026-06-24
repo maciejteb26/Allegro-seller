@@ -1,6 +1,6 @@
 import { Platform } from '@prisma/client';
 import { env } from '../../utils/env';
-import { getPresignedUrl } from '../image.service';
+import { buildPublicImageUrl } from '../../utils/image-public-token';
 import { uploadImageToAllegro, createAllegroOffer } from '../allegro-api.service';
 import { BasePlatformService, ListingWithRelations, PublishResult } from './base.platform.service';
 import { mockPublish } from './helpers';
@@ -28,7 +28,7 @@ export class AllegroService extends BasePlatformService {
     // 1. Upload zdjęć do Allegro CDN (max 8)
     const imageIds: string[] = [];
     for (const img of listing.images.slice(0, 8)) {
-      const url = await getPresignedUrl(img.s3Key);
+      const url = buildPublicImageUrl(img.id);
       const id = await uploadImageToAllegro(listing.userId, url);
       imageIds.push(id);
     }

@@ -7,6 +7,7 @@ export async function resetDb(): Promise<void> {
   await prisma.marginRule.deleteMany();
   await prisma.userPlatform.deleteMany();
   await prisma.refreshToken.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
   await prisma.client.deleteMany();
   await prisma.platformCategoryMapping.deleteMany();
   await prisma.internalCategory.deleteMany();

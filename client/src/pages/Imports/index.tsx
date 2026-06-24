@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { getClients, VAT_OPTIONS } from '@/api/clients.api';
-import { FileSpreadsheet, Rocket, Search, Sparkles, Upload } from 'lucide-react';
+import { FileSpreadsheet, Rocket, Search, Sparkles, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -15,6 +15,7 @@ import {
 import { ImportRowsTable } from './ImportRowsTable';
 import { AiStatusBanner } from './AiStatusBanner';
 import { ExternalSearchBanner } from './ExternalSearchBanner';
+import { exportImportRowsToCsv } from '@/utils/csv-export';
 
 function toEnrichedRows(rows: ParsedImportRow[]): SeoImportRow[] {
   return rows.map((row) => ({
@@ -120,9 +121,9 @@ export default function ImportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Import z Excel</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Import z Excel / CSV</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Excel → Google i sprzedawcy → tłumaczenie na polski (AI) → wystawienie na Allegro.
+          Plik Excel lub CSV → wyszukiwanie → tłumaczenie (AI) → wystawienie na Allegro.
         </p>
       </div>
 
@@ -141,8 +142,18 @@ export default function ImportsPage() {
         />
         <Button onClick={() => inputRef.current?.click()} disabled={parseMutation.isPending}>
           <Upload className="mr-2 h-4 w-4" />
-          {parseMutation.isPending ? 'Wczytywanie…' : 'Wybierz plik Excel'}
+          {parseMutation.isPending ? 'Wczytywanie…' : 'Wybierz plik Excel / CSV'}
         </Button>
+
+        {rows.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={() => exportImportRowsToCsv(rows, fileName ?? 'import-wynik.csv')}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Eksportuj CSV
+          </Button>
+        )}
 
         {rows.length > 0 && (
           <Button variant="outline" onClick={() => enrichMutation.mutate()} disabled={enrichMutation.isPending}>
@@ -213,7 +224,7 @@ export default function ImportsPage() {
         <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 py-16 text-center">
           <FileSpreadsheet className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">
-            Obsługiwane formaty: <strong>Zestawienie</strong> (EAN, Tytuł) lub <strong>Lista produktów</strong> (produkt_nazwa, produkt_ean)
+            Obsługiwane formaty: <strong>Zestawienie</strong> (EAN, Tytuł), <strong>Lista produktów</strong> (produkt_nazwa, produkt_ean) lub <strong>CSV</strong> (średnik lub przecinek, UTF-8)
           </p>
         </div>
       )}

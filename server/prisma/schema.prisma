@@ -24,8 +24,9 @@ model User {
   listings      Listing[]
   platforms     UserPlatform[]
   marginRules   MarginRule[]
-  refreshTokens RefreshToken[]
-  clients       Client[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  clients             Client[]
 }
 
 model Client {
@@ -55,6 +56,19 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model UserPlatform {
@@ -219,6 +233,9 @@ model PlatformListing {
   errorCode      String?
   retryCount     Int            @default(0)
   publishedAt    DateTime?
+  visitsCount    Int            @default(0)
+  watchersCount  Int            @default(0)
+  soldCount      Int            @default(0)
   lastSyncedAt   DateTime?
 
   listing        Listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
