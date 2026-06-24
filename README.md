@@ -2,7 +2,7 @@
 
 Narzędzie SaaS do publikacji ogłoszeń części samochodowych na Allegro.
 
-Repozytorium: [github.com/maciejteb26/szybkiewystawianie.pl](https://github.com/maciejteb26/szybkiewystawianie.pl)
+Repozytorium: [github.com/maciejteb26/Allegro-seller](https://github.com/maciejteb26/Allegro-seller) (nazwa produktu: szybkiewystawianie.pl)
 ## Szybki start
 
 ```bash

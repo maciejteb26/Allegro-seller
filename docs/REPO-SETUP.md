@@ -1,7 +1,7 @@
 # Repo setup — do zrobienia przez właściciela repo
 
 Te punkty wymagają uprawnień admina w ustawieniach GitHub. Sprawdzone: konto użyte do pracy
-nad tym repo ma `push`/`triage`, nie `admin` (`gh api repos/maciejteb26/szybkiewystawianie.pl --jq
+nad tym repo ma `push`/`triage`, nie `admin` (`gh api repos/maciejteb26/Allegro-seller --jq
 .permissions`) — żadnego z poniższych nie da się skonfigurować z tego miejsca.
 
 ## 1. Branch protection na `main`
