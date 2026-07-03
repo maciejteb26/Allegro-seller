@@ -29,19 +29,20 @@ export function ClientSellerPicker({ selected, onChange }: ClientSellerPickerPro
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <Label>Sprzedawcy do wyszukiwania</Label>
+        <Label>Źródła wyszukiwania produktów</Label>
         <button
           type="button"
           onClick={selectAll}
           className="text-xs font-medium text-primary-600 hover:text-primary-700"
         >
-          Wszyscy ({SELLER_OPTIONS.length})
+          Wszystkie ({SELLER_OPTIONS.length})
         </button>
       </div>
       <p className="mt-1 text-xs text-ink-muted">
+        Skąd pobieramy opisy, zdjęcia i dane produktu po EAN — <strong>nie dotyczy publikacji na Allegro</strong>.{' '}
         {allSelected
-          ? 'Brak wyboru = szukaj u wszystkich popularnych sprzedawców'
-          : `Wybrano ${selected.length} sprzedawców`}
+          ? 'Aktualnie: szukaj we wszystkich źródłach.'
+          : `Wybrano ${selected.length} źródeł.`}
       </p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {SELLER_OPTIONS.map((seller) => {

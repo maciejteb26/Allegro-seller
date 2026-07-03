@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/auth.store';
 const LINKS = [
   { href: '#jak-to-dziala', label: 'Jak to działa' },
   { href: '#funkcje', label: 'Funkcje' },
-  { href: '#seo', label: 'SEO Allegro' },
   { href: '#faq', label: 'FAQ' },
 ];
 
@@ -16,7 +15,7 @@ export function LandingNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-warm-200/80 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-sm font-bold text-white shadow-sm">
@@ -63,7 +62,7 @@ export function LandingNav() {
       </div>
 
       {open && (
-        <nav className="border-t border-stone-200 bg-white px-4 py-4 md:hidden" aria-label="Mobilne">
+        <nav className="border-t border-warm-200 bg-white px-4 py-4 md:hidden" aria-label="Mobilne">
           <div className="flex flex-col gap-3">
             {LINKS.map((link) => (
               <a
@@ -75,7 +74,7 @@ export function LandingNav() {
                 {link.label}
               </a>
             ))}
-            <div className="mt-2 flex flex-col gap-2 border-t border-stone-100 pt-4">
+            <div className="mt-2 flex flex-col gap-2 border-t border-warm-100 pt-4">
               {user ? (
                 <Button asChild className="bg-primary-600">
                   <Link to="/dashboard">Panel</Link>

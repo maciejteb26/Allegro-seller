@@ -4,17 +4,18 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'Outfit', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
       colors: {
         primary: {
-          50: '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          500: '#f97316',
-          600: '#ea580c',
-          700: '#c2410c',
+          50: '#FFF0E6',
+          100: '#FFD9BF',
+          200: '#FFB380',
+          500: '#FF6600',
+          600: '#FF6600',
+          700: '#E55A00',
           900: '#7c2d12',
         },
         brand: {
@@ -25,19 +26,26 @@ export default {
           700: '#0f766e',
         },
         surface: {
-          DEFAULT: '#fafaf9',
+          DEFAULT: '#F8F7F5',
           card: '#ffffff',
-          muted: '#f5f5f4',
+          muted: '#F8F7F5',
         },
         ink: {
-          DEFAULT: '#1c1917',
-          muted: '#57534e',
-          faint: '#a8a29e',
+          DEFAULT: '#1A1714',
+          muted: '#7A756F',
+          faint: '#B5B0AB',
+        },
+        warm: {
+          50: '#F8F7F5',
+          100: '#F1F0EE',
+          200: '#E8E4DF',
+          300: '#D6D0C9',
+          500: '#7A756F',
         },
       },
       boxShadow: {
-        soft: '0 4px 24px -4px rgba(28, 25, 23, 0.08)',
-        card: '0 1px 3px rgba(28, 25, 23, 0.06), 0 8px 24px -8px rgba(28, 25, 23, 0.1)',
+        soft: '0 4px 24px -4px rgba(26, 23, 20, 0.08)',
+        card: '0 1px 4px rgba(0,0,0,0.06)',
       },
     },
   },

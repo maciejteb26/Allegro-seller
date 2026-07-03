@@ -30,9 +30,9 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+    <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
-        <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+        <thead className="bg-warm-50 text-left text-xs uppercase text-ink-muted tracking-wider font-semibold">
           <tr>
             <th className="px-3 py-2 w-8" />
             <th className="px-3 py-2">#</th>
@@ -53,7 +53,7 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
             return (
               <Fragment key={row.rowIndex}>
                 <tr
-                  className={cn('border-t border-gray-100 hover:bg-gray-50', hasSeo && 'cursor-pointer')}
+                  className={cn('border-t border-warm-100 hover:bg-warm-50 transition-colors', hasSeo && 'cursor-pointer')}
                   onClick={() => hasSeo && setExpandedRow(isExpanded ? null : row.rowIndex)}
                 >
                   <td className="px-3 py-2 text-gray-400">
@@ -123,7 +123,7 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
                   </td>
                 </tr>
                 {isExpanded && hasSeo && (
-                  <tr className="border-t border-gray-100 bg-gray-50">
+                  <tr className="border-t border-warm-100 bg-warm-50">
                     <td colSpan={9} className="px-6 py-4">
                       <ImportSeoPreview row={row} />
                     </td>

@@ -10,7 +10,7 @@ const ICONS = {
 
 export function LandingWorkflow() {
   return (
-    <section id="jak-to-dziala" className="border-y border-stone-200 bg-surface-muted py-20 sm:py-28">
+    <section id="jak-to-dziala" className="border-y border-warm-200 bg-surface-muted py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary-600">Proces</p>
@@ -28,12 +28,12 @@ export function LandingWorkflow() {
             return (
               <li
                 key={item.step}
-                className="relative rounded-2xl border border-stone-200 bg-white p-6 shadow-soft"
+                className="relative rounded-2xl border border-warm-200 bg-white p-6 shadow-soft"
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className="absolute right-5 top-5 font-display text-3xl font-bold text-stone-100">
+                <span className="absolute right-5 top-5 font-display text-3xl font-bold text-warm-300">
                   {item.step}
                 </span>
                 <h3 className="mt-4 font-display text-lg font-semibold text-ink">{item.title}</h3>
