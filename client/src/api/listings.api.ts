@@ -64,6 +64,16 @@ export async function duplicateListing(id: string): Promise<Listing> {
   return data;
 }
 
+export async function publishListing(
+  id: string,
+  platforms: Array<'ALLEGRO'> = ['ALLEGRO'],
+): Promise<{ results: Record<string, string> }> {
+  const { data } = await apiClient.post<{ results: Record<string, string> }>(`/listings/${id}/publish`, {
+    platforms,
+  });
+  return data;
+}
+
 export async function uploadImages(listingId: string, files: File[]): Promise<void> {
   const formData = new FormData();
   files.forEach((file) => formData.append('images', file));

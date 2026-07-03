@@ -2,7 +2,6 @@ import { LandingNav } from './LandingNav';
 import { LandingHero } from './LandingHero';
 import { LandingWorkflow } from './LandingWorkflow';
 import { LandingFeatures } from './LandingFeatures';
-import { LandingSeoSection } from './LandingSeoSection';
 import { LandingFaq } from './LandingFaq';
 import { LandingCta, LandingFooter } from './LandingCta';
 import { LandingJsonLd } from './LandingJsonLd';
@@ -16,7 +15,6 @@ export default function LandingPage() {
         <LandingHero />
         <LandingWorkflow />
         <LandingFeatures />
-        <LandingSeoSection />
         <LandingFaq />
         <LandingCta />
       </main>

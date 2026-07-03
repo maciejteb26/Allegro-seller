@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { getClients, VAT_OPTIONS } from '@/api/clients.api';
-import { FileSpreadsheet, Rocket, Search, Sparkles, Upload, Download } from 'lucide-react';
+import { FileSpreadsheet, Rocket, Search, Sparkles, Upload, Download, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import {
+  ImportProgress,
   ParsedImportRow,
   SeoImportRow,
   enrichImportRows,
@@ -15,6 +17,7 @@ import {
 import { ImportRowsTable } from './ImportRowsTable';
 import { AiStatusBanner } from './AiStatusBanner';
 import { ExternalSearchBanner } from './ExternalSearchBanner';
+import { Stepper } from './Stepper';
 import { exportImportRowsToCsv } from '@/utils/csv-export';
 
 function toEnrichedRows(rows: ParsedImportRow[]): SeoImportRow[] {
@@ -43,6 +46,8 @@ export default function ImportsPage() {
   const [enrichSummary, setEnrichSummary] = useState<{ matched: number; notFound: number; errors: number } | null>(null);
   const [seoSummary, setSeoSummary] = useState<{ generated: number; aiCount: number; errors: number } | null>(null);
   const [publishSummary, setPublishSummary] = useState<{ published: number; skipped: number; errors: number } | null>(null);
+  const [enrichProgress, setEnrichProgress] = useState<ImportProgress | null>(null);
+  const [seoProgress, setSeoProgress] = useState<ImportProgress | null>(null);
 
   const parseMutation = useMutation({
     mutationFn: (file: File) => parseImportFile(file, activeClientId),
@@ -65,7 +70,10 @@ export default function ImportsPage() {
   });
 
   const enrichMutation = useMutation({
-    mutationFn: () => enrichImportRows(rows, activeClientId),
+    mutationFn: () => {
+      setEnrichProgress(null);
+      return enrichImportRows(rows, activeClientId, setEnrichProgress);
+    },
     onSuccess: (data) => {
       setRows(data.rows.map((row) => ({ ...row, seoStatus: 'pending', seo: null })));
       setEnrichSummary(data.summary);
@@ -77,6 +85,7 @@ export default function ImportsPage() {
       );
     },
     onError: () => toast('Błąd wyszukiwania produktów', 'error'),
+    onSettled: () => setEnrichProgress(null),
   });
 
   const publishMutation = useMutation({
@@ -93,7 +102,10 @@ export default function ImportsPage() {
   });
 
   const seoMutation = useMutation({
-    mutationFn: () => generateImportSeo(rows, activeClientId),
+    mutationFn: () => {
+      setSeoProgress(null);
+      return generateImportSeo(rows, activeClientId, setSeoProgress);
+    },
     onSuccess: (data) => {
       setRows(data.rows);
       setSeoSummary({
@@ -107,6 +119,7 @@ export default function ImportsPage() {
       );
     },
     onError: () => toast('Błąd generowania SEO', 'error'),
+    onSettled: () => setSeoProgress(null),
   });
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -117,140 +130,203 @@ export default function ImportsPage() {
 
   const hasEnriched = rows.some((row) => row.enrichStatus !== 'pending');
   const hasSeo = rows.some((row) => row.seoStatus === 'generated');
+  const hasPublished = !!publishSummary && publishSummary.published > 0;
+
+  // Determine stepper step
+  const currentStep = hasSeo ? 4 : hasEnriched ? 3 : rows.length > 0 ? 2 : 1;
+
+  // Summary counts
+  const summaryCards = [
+    { label: 'Znalezione', value: enrichSummary?.matched ?? 0, color: 'text-green-600' },
+    { label: 'Brak w kat.', value: enrichSummary?.notFound ?? 0, color: 'text-amber-600' },
+    { label: 'SEO gotowe', value: seoSummary?.generated ?? 0, color: 'text-blue-600' },
+    { label: 'Wystawione', value: publishSummary?.published ?? 0, color: 'text-green-600' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Import z Excel / CSV</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Plik Excel lub CSV → wyszukiwanie → tłumaczenie (AI) → wystawienie na Allegro.
+        <h1 className="text-[28px] font-extrabold text-ink tracking-tight">Import Excel</h1>
+        <p className="text-sm text-ink-muted mt-1">
+          Wgraj plik, znajdź dane, wygeneruj SEO i wystaw na Allegro.
         </p>
       </div>
 
-      <div className="space-y-3">
+      {/* Info banners */}
+      <div className="flex flex-col gap-2.5">
         <AiStatusBanner />
         <ExternalSearchBanner />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <Button onClick={() => inputRef.current?.click()} disabled={parseMutation.isPending}>
-          <Upload className="mr-2 h-4 w-4" />
-          {parseMutation.isPending ? 'Wczytywanie…' : 'Wybierz plik Excel / CSV'}
-        </Button>
-
-        {rows.length > 0 && (
-          <Button
-            variant="outline"
-            onClick={() => exportImportRowsToCsv(rows, fileName ?? 'import-wynik.csv')}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Eksportuj CSV
-          </Button>
-        )}
-
-        {rows.length > 0 && (
-          <Button variant="outline" onClick={() => enrichMutation.mutate()} disabled={enrichMutation.isPending}>
-            <Search className="mr-2 h-4 w-4" />
-            {enrichMutation.isPending ? 'Szukam produktów…' : 'Szukaj (Google + sprzedawcy + Allegro)'}
-          </Button>
-        )}
-
-        {hasEnriched && (
-          <Button variant="outline" onClick={() => seoMutation.mutate()} disabled={seoMutation.isPending}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            {seoMutation.isPending ? 'Tłumaczę i generuję SEO…' : 'Tłumacz na polski + SEO'}
-          </Button>
-        )}
-
-        {hasSeo && (
-          <Button onClick={() => publishMutation.mutate()} disabled={publishMutation.isPending}>
-            <Rocket className="mr-2 h-4 w-4" />
-            {publishMutation.isPending ? 'Wystawiam na Allegro…' : 'Wystaw na Allegro'}
-          </Button>
-        )}
-      </div>
-
-      {fileName && (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-          <FileSpreadsheet className="h-4 w-4" />
-          <span>{fileName}</span>
-          {clientName && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700">{clientName}</span>}
-          {profileLabel && <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs text-primary-700">{profileLabel}</span>}
-          {clientVat && <span className="text-xs text-gray-500">VAT {VAT_OPTIONS.find((v) => v.value === clientVat)?.label ?? clientVat}</span>}
-          {clientInvoices !== null && <span className="text-xs text-gray-500">Faktura: {clientInvoices ? 'tak' : 'nie'}</span>}
-          <span className="text-gray-400">· {rows.length} pozycji</span>
-        </div>
-      )}
-
+      {/* Missing client warning */}
       {!clientsData?.clients.length && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Dodaj klienta w zakładce <a href="/clients" className="font-medium underline">Klienci</a>, aby ustawić VAT i faktury per profil.
+          Dodaj klienta w zakładce{' '}
+          <a href="/clients" className="font-medium underline">Klienci</a>, aby ustawić VAT i faktury per profil.
         </p>
       )}
 
-      {(enrichSummary || seoSummary) && (
-        <div className="grid grid-cols-2 gap-4 max-w-2xl lg:grid-cols-4">
-          {enrichSummary && (
-            <>
-              <StatCard label="Dopasowane" value={enrichSummary.matched} tone="green" />
-              <StatCard label="Brak w katalogu" value={enrichSummary.notFound} tone="amber" />
-            </>
-          )}
-          {seoSummary && (
-            <>
-              <StatCard label="SEO wygenerowane" value={seoSummary.generated} tone="green" />
-              <StatCard label="Przez AI" value={seoSummary.aiCount} tone="blue" />
-            </>
-          )}
-          {publishSummary && (
-            <>
-              <StatCard label="Wystawione" value={publishSummary.published} tone="green" />
-              <StatCard label="Błędy publikacji" value={publishSummary.errors} tone="red" />
-            </>
-          )}
-        </div>
-      )}
+      {/* Stepper */}
+      <Stepper currentStep={currentStep} />
 
-      <ImportRowsTable rows={rows} />
+      {/* Hidden file input */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
+      {/* Dropzone (no file loaded) */}
       {rows.length === 0 && !parseMutation.isPending && (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 py-16 text-center">
-          <FileSpreadsheet className="mx-auto h-10 w-10 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">
-            Obsługiwane formaty: <strong>Zestawienie</strong> (EAN, Tytuł), <strong>Lista produktów</strong> (produkt_nazwa, produkt_ean) lub <strong>CSV</strong> (średnik lub przecinek, UTF-8)
-          </p>
+        <div
+          onClick={() => inputRef.current?.click()}
+          className="border-2 border-dashed border-warm-200 rounded-2xl py-14 px-8 text-center cursor-pointer bg-white hover:border-primary-600 hover:bg-primary-50 transition-colors"
+        >
+          <Upload className="mx-auto h-10 w-10 text-warm-300 mb-4" />
+          <p className="text-lg font-bold text-ink mb-1.5">Przeciągnij plik tutaj</p>
+          <p className="text-sm text-ink-muted mb-5">lub kliknij, aby wybrać</p>
+          <div className="inline-flex flex-col gap-1 text-xs text-ink-muted bg-warm-50 rounded-xl px-5 py-3">
+            <span>Obsługiwane: <strong className="font-mono text-ink">.xlsx · .xls · .csv</strong></span>
+            <span>Format: „Zestawienie" lub „Lista produktów"</span>
+          </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: 'green' | 'amber' | 'red' | 'blue';
-}) {
-  const tones = {
-    green: 'text-green-700 bg-green-50',
-    amber: 'text-amber-700 bg-amber-50',
-    red: 'text-red-700 bg-red-50',
-    blue: 'text-blue-700 bg-blue-50',
-  };
-  return (
-    <div className={`rounded-lg px-4 py-3 ${tones[tone]}`}>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-xs">{label}</div>
+      {/* Loading */}
+      {parseMutation.isPending && (
+        <div className="flex items-center justify-center py-16 bg-white border border-warm-200 rounded-xl">
+          <div className="text-sm text-ink-muted">Wczytywanie pliku…</div>
+        </div>
+      )}
+
+      {/* File loaded: header + summary + table + action bar */}
+      {rows.length > 0 && (
+        <>
+          {/* File header */}
+          <div className="bg-white border border-warm-200 rounded-xl rounded-b-none border-b-0 px-5 py-4 flex items-center gap-5 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600 shrink-0">
+                <FileSpreadsheet className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm font-mono text-ink">{fileName}</p>
+                <p className="text-xs text-ink-muted">
+                  {rows.length} pozycji
+                  {profileLabel && <> · profil: <strong>{profileLabel}</strong></>}
+                  {clientName && <> · klient: <strong>{clientName}</strong></>}
+                  {clientVat && <> · VAT: {VAT_OPTIONS.find((v) => v.value === clientVat)?.label ?? clientVat}</>}
+                  {clientInvoices !== null && <> · Faktura: {clientInvoices ? 'tak' : 'nie'}</>}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary strip */}
+          {(enrichSummary || seoSummary || publishSummary) && (
+            <div className="bg-white border-x border-warm-200 px-5 py-3.5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {summaryCards.map(({ label, value, color }) => (
+                <div key={label} className="border border-warm-200 rounded-lg px-3.5 py-2.5">
+                  <div className="text-xs text-ink-muted font-medium">{label}</div>
+                  <div className={`text-xl font-extrabold ${color}`}>{value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="bg-white border-x border-warm-200">
+            <ImportRowsTable rows={rows} />
+          </div>
+
+          {/* Success banner */}
+          {hasPublished && (
+            <div className="bg-green-50 border-x border-warm-200 border-t border-green-100 px-5 py-4 flex items-center gap-4 flex-wrap">
+              <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+              <p className="font-bold text-green-800 flex-1">
+                Wystawiono {publishSummary.published} ogłoszeń na Allegro!
+              </p>
+              <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 text-white font-semibold">
+                <Link to="/listings">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Zobacz wystawione ogłoszenia
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {/* Sticky action bar */}
+          <div className="relative sticky bottom-0 bg-white border border-warm-200 rounded-b-xl px-5 py-3.5 flex items-center gap-2.5 flex-wrap shadow-[0_-4px_16px_rgba(0,0,0,0.05)] z-10">
+            {(enrichProgress || seoProgress) && (
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-warm-100 overflow-hidden rounded-t-xl">
+                <div
+                  className="h-full bg-primary-600 transition-all duration-300"
+                  style={{
+                    width: `${(((enrichProgress ?? seoProgress)!.done / (enrichProgress ?? seoProgress)!.total) * 100).toFixed(0)}%`,
+                  }}
+                />
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              className="border-warm-200 text-ink hover:bg-warm-50"
+            >
+              Wgraj nowy plik
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportImportRowsToCsv(rows, fileName ?? 'import-wynik.csv')}
+              className="border-warm-200 text-ink hover:bg-warm-50"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Eksportuj CSV
+            </Button>
+
+            <div className="flex-1" />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => enrichMutation.mutate()}
+              disabled={enrichMutation.isPending}
+              className="border-warm-200 text-ink hover:bg-warm-50"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              {enrichMutation.isPending
+                ? `Szukam… ${enrichProgress ? `(${enrichProgress.done}/${enrichProgress.total})` : ''}`
+                : 'Szukaj produkty'}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => seoMutation.mutate()}
+              disabled={seoMutation.isPending || !hasEnriched}
+              className="border-warm-200 text-ink hover:bg-warm-50 disabled:opacity-40"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {seoMutation.isPending
+                ? `Generuję SEO… ${seoProgress ? `(${seoProgress.done}/${seoProgress.total})` : ''}`
+                : 'Generuj SEO'}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => publishMutation.mutate()}
+              disabled={publishMutation.isPending || !hasSeo}
+              className="bg-primary-600 hover:bg-primary-700 text-white font-semibold shadow-sm disabled:opacity-40"
+            >
+              <Rocket className="mr-2 h-4 w-4" />
+              {publishMutation.isPending ? 'Wystawiam…' : 'Wystaw na Allegro'}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

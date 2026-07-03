@@ -38,15 +38,17 @@ export async function enrichParsedRows(
   userId: string,
   rows: ParsedImportRow[],
   client?: ClientSettingsContext | null,
+  onProgress?: (done: number, total: number) => void,
 ): Promise<EnrichedImportRow[]> {
-  return enrichImportRowsFull(userId, rows, client);
+  return enrichImportRowsFull(userId, rows, client, onProgress);
 }
 
 export async function generateSeoForRows(
   rows: EnrichedImportRow[],
   client?: ClientSettingsContext | null,
+  onProgress?: (done: number, total: number) => void,
 ): Promise<SeoImportRow[]> {
-  return generateSeoForImportRows(rows, client);
+  return generateSeoForImportRows(rows, client, onProgress);
 }
 
 export async function publishRows(userId: string, rows: SeoImportRow[]): Promise<ImportPublishResultRow[]> {

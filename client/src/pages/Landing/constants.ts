@@ -52,19 +52,6 @@ export const FEATURES = [
   },
 ] as const;
 
-export const SEO_BENEFITS = [
-  'Tytuł max 75 znaków — marka i słowa kluczowe na początku',
-  'Tłumaczenie EN/DE → polski z adaptacją pod Allegro',
-  'Opis z EAN, VAT, fakturą i parametrami produktu',
-  'Własny prompt SEO per klient — ton i słownictwo pod branżę',
-] as const;
-
-export const STATS = [
-  { value: '153+', label: 'pozycji z jednego Excela' },
-  { value: '75', label: 'znaków tytułu SEO Allegro' },
-  { value: '4', label: 'kroki do publikacji' },
-] as const;
-
 export const FAQ = [
   {
     q: 'Czy szybkiewystawianie.pl wystawia oferty na Allegro?',

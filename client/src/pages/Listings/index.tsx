@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Package, Copy, Pencil, Trash2 } from 'lucide-react';
-import { getListings, deleteListing, duplicateListing } from '@/api/listings.api';
+import { Plus, Search, Package, Copy, Pencil, Trash2, Rocket } from 'lucide-react';
+import { getListings, deleteListing, duplicateListing, publishListing } from '@/api/listings.api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/listings/StatusBadge';
@@ -21,10 +21,10 @@ const STATUS_FILTERS: { value: ListingStatus | ''; label: string }[] = [
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-gray-100">
+    <tr className="border-t border-warm-100">
       {[...Array(6)].map((_, i) => (
         <td key={i} className="px-4 py-3">
-          <div className="h-4 rounded bg-gray-200 animate-pulse" style={{ width: `${60 + i * 10}%` }} />
+          <div className="h-4 rounded bg-warm-100 animate-pulse" style={{ width: `${60 + i * 10}%` }} />
         </td>
       ))}
     </tr>
@@ -67,6 +67,16 @@ export default function ListingsPage() {
     onError: () => toast('Błąd podczas duplikowania', 'error'),
   });
 
+  const publishMutation = useMutation({
+    mutationFn: (id: string) => publishListing(id),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['listings'] });
+      const failed = Object.values(data.results).some((s) => s !== 'ACTIVE');
+      toast(failed ? 'Publikacja zakończona z błędami' : 'Wystawiono na Allegro', failed ? 'error' : 'success');
+    },
+    onError: () => toast('Błąd podczas publikacji', 'error'),
+  });
+
   function handleDelete(listing: Listing) {
     if (!confirm(`Usunąć ogłoszenie "${listing.title}"?`)) return;
     deleteMutation.mutate(listing.id);
@@ -80,10 +90,12 @@ export default function ListingsPage() {
   const isEmpty = !isLoading && items.length === 0 && !showLocalDraft;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Ogłoszenia</h1>
-        <Button asChild>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <h1 className="text-2xl md:text-[28px] font-extrabold text-ink tracking-tight">
+          Ogłoszenia <span className="text-lg font-semibold text-ink-muted">· {items.length}</span>
+        </h1>
+        <Button asChild className="bg-primary-600 hover:bg-primary-700 text-white font-semibold shadow-sm">
           <Link to="/listings/new">
             <Plus className="h-4 w-4 mr-2" /> Dodaj ogłoszenie
           </Link>
@@ -91,44 +103,45 @@ export default function ListingsPage() {
       </div>
 
       {/* Filtry */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Szukaj ogłoszeń..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex gap-1">
+      <div className="flex gap-3 flex-wrap items-center">
+        <div className="flex gap-0.5 bg-white border border-warm-200 rounded-lg p-[3px]">
           {STATUS_FILTERS.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => setStatusFilter(value)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 statusFilter === value
                   ? 'bg-primary-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'text-ink-muted hover:bg-warm-50'
               }`}
             >
               {label}
             </button>
           ))}
         </div>
+        <div className="relative flex-1 min-w-[220px] max-w-[340px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
+          <Input
+            placeholder="Szukaj po tytule lub EAN…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="ml-auto text-sm text-ink-muted">{items.length} wyników</div>
       </div>
 
       {/* Tabela */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-warm-200 bg-white shadow-card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Zdjęcie</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Tytuł</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Stan</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Cena bazowa</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600">Akcje</th>
+          <thead>
+            <tr className="bg-warm-50 text-ink-muted text-xs font-semibold uppercase tracking-wider">
+              <th className="px-4 py-3 text-left">Zdjęcie</th>
+              <th className="px-4 py-3 text-left">Tytuł</th>
+              <th className="px-4 py-3 text-left">Stan</th>
+              <th className="px-4 py-3 text-left">Cena bazowa</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-right">Akcje</th>
             </tr>
           </thead>
           <tbody>
@@ -141,11 +154,13 @@ export default function ListingsPage() {
             {isEmpty && (
               <tr>
                 <td colSpan={6} className="px-4 py-16 text-center">
-                  <Package className="mx-auto h-10 w-10 text-gray-300 mb-3" />
-                  <p className="text-gray-500">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warm-50 mx-auto mb-4">
+                    <Package className="h-6 w-6 text-ink-muted" />
+                  </div>
+                  <p className="text-sm text-ink-muted">
                     {statusFilter === 'DRAFT' ? 'Brak szkiców' : 'Brak ogłoszeń'}
                   </p>
-                  <Button asChild className="mt-3" variant="outline" size="sm">
+                  <Button asChild className="mt-4" variant="outline" size="sm">
                     <Link to="/listings/new">
                       {statusFilter === 'DRAFT' ? 'Rozpocznij nowy szkic' : 'Dodaj pierwsze ogłoszenie'}
                     </Link>
@@ -155,30 +170,30 @@ export default function ListingsPage() {
             )}
 
             {items.map((listing) => (
-              <tr key={listing.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <tr key={listing.id} className="border-t border-warm-100 hover:bg-warm-50 transition-colors">
                 <td className="px-4 py-3">
                   {listing.images[0]?.url ? (
                     <img
                       src={listing.images[0].url}
                       alt={listing.title}
-                      className="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                      className="h-10 w-10 rounded-lg object-cover border border-warm-200"
                     />
                   ) : (
-                    <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <Package className="h-5 w-5 text-gray-400" />
+                    <div className="h-10 w-10 rounded-lg bg-warm-100 flex items-center justify-center border border-warm-200">
+                      <Package className="h-4 w-4 text-ink-muted" />
                     </div>
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-gray-900 line-clamp-1">{listing.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="font-medium text-ink line-clamp-1">{listing.title}</p>
+                  <p className="text-xs text-ink-muted mt-0.5">
                     {new Date(listing.createdAt).toLocaleDateString('pl-PL')}
                   </p>
                 </td>
-                <td className="px-4 py-3 text-gray-700">
+                <td className="px-4 py-3 text-ink-muted">
                   {{ NEW: 'Nowy', USED: 'Używany', DAMAGED: 'Uszkodzony' }[listing.condition]}
                 </td>
-                <td className="px-4 py-3 font-semibold text-gray-900">
+                <td className="px-4 py-3 font-semibold text-ink">
                   {Number(listing.basePrice).toFixed(2)} PLN
                 </td>
                 <td className="px-4 py-3">
@@ -186,23 +201,33 @@ export default function ListingsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
+                    {(listing.status === 'ERROR' || listing.status === 'PUBLISHING' || listing.status === 'DRAFT') && (
+                      <button
+                        onClick={() => publishMutation.mutate(listing.id)}
+                        disabled={publishMutation.isPending}
+                        className="p-1.5 rounded-md hover:bg-warm-100 text-ink-muted hover:text-ink disabled:opacity-40"
+                        title="Wystaw ponownie na Allegro"
+                      >
+                        <Rocket className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => navigate(`/listings/${listing.id}/edit`)}
-                      className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
+                      className="p-1.5 rounded-md hover:bg-warm-100 text-ink-muted hover:text-ink"
                       title="Edytuj"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => duplicateMutation.mutate(listing.id)}
-                      className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
+                      className="p-1.5 rounded-md hover:bg-warm-100 text-ink-muted hover:text-ink"
                       title="Duplikuj"
                     >
                       <Copy className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(listing)}
-                      className="p-1.5 rounded hover:bg-red-50 text-red-500"
+                      className="p-1.5 rounded-md hover:bg-red-50 text-red-500"
                       title="Usuń"
                     >
                       <Trash2 className="h-4 w-4" />

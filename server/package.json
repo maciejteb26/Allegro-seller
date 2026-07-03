@@ -14,7 +14,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "supabase:check": "node scripts/check-supabase-env.js"
+    "supabase:check": "node scripts/check-supabase-env.js",
+    "categories:sync": "ts-node scripts/sync-allegro-categories.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

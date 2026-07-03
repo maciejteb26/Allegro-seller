@@ -28,7 +28,7 @@ export function LandingFeatures() {
             return (
               <li
                 key={feature.title}
-                className="rounded-2xl border border-stone-200 bg-white p-6 shadow-soft transition-shadow hover:shadow-card"
+                className="rounded-2xl border border-warm-200 bg-white p-6 shadow-soft transition-shadow hover:shadow-card"
               >
                 <span className="inline-flex rounded-xl bg-brand-50 p-2.5 text-brand-600">
                   <Icon className="h-5 w-5" />

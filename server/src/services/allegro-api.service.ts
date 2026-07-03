@@ -3,6 +3,7 @@ import { Platform } from '@prisma/client';
 import { AppError } from '../middleware/error.middleware';
 import { prisma } from '../utils/prisma';
 import { env } from '../utils/env';
+import { logger } from '../utils/logger';
 import { getValidAccessToken } from './allegro-oauth.service';
 
 interface AllegroMeResponse {
@@ -24,6 +25,21 @@ interface AllegroCategoryResponse {
   categories: AllegroCategory[];
 }
 
+interface AllegroMatchingCategoriesResponse {
+  matchingCategories: AllegroCategory[];
+}
+
+export interface AllegroCategoryParameter {
+  id: string;
+  name: string;
+  required: boolean;
+  dictionary?: Array<{ id: string; value: string }>;
+}
+
+interface AllegroCategoryParametersResponse {
+  parameters: AllegroCategoryParameter[];
+}
+
 interface AllegroRequestResult<T> {
   data: T;
   traceId: string | null;
@@ -41,6 +57,16 @@ export async function getAllegroMe(userId: string): Promise<AllegroMeResponse> {
   return result.data;
 }
 
+export async function getAllegroCategoryParameters(
+  userId: string,
+  categoryId: string,
+): Promise<AllegroRequestResult<AllegroCategoryParameter[]>> {
+  const token = await getAllegroToken(userId);
+  const url = `${ALLEGRO_BASE_URL}/sale/categories/${encodeURIComponent(categoryId)}/parameters`;
+  const result = await requestWithRetry<AllegroCategoryParametersResponse>(url, token);
+  return { data: result.data.parameters ?? [], traceId: result.traceId };
+}
+
 export async function getAllegroCategories(
   userId: string,
   parentId?: string,
@@ -50,6 +76,17 @@ export async function getAllegroCategories(
   const url = `${ALLEGRO_BASE_URL}/sale/categories${query}`;
   const result = await requestWithRetry<AllegroCategoryResponse>(url, token);
   return { data: result.data.categories ?? [], traceId: result.traceId };
+}
+
+// MOCK MODE — wymaga ALLEGRO_MOCK=false i prawdziwego tokenu
+export async function getAllegroMatchingCategories(
+  userId: string,
+  phrase: string,
+): Promise<AllegroRequestResult<AllegroCategory[]>> {
+  const token = await getAllegroToken(userId);
+  const url = `${ALLEGRO_BASE_URL}/sale/matching-categories?name=${encodeURIComponent(phrase)}`;
+  const result = await requestWithRetry<AllegroMatchingCategoriesResponse>(url, token);
+  return { data: result.data.matchingCategories ?? [], traceId: result.traceId };
 }
 
 export async function saveAllegroMappings(
@@ -149,40 +186,68 @@ async function getAllegroToken(userId: string): Promise<string> {
 
 export async function uploadImageToAllegro(userId: string, imageUrl: string): Promise<string> {
   const token = await getAllegroToken(userId);
-  const response = await axios.post<{ imageId: string }>(
-    `${ALLEGRO_BASE_URL}/sale/images`,
-    { url: imageUrl },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': ACCEPT_HEADER,
-        Accept: ACCEPT_HEADER,
-        'User-Agent': env.ALLEGRO_USER_AGENT,
+  let response;
+  try {
+    response = await axios.post<{ location: string }>(
+      `${ALLEGRO_BASE_URL}/sale/images`,
+      { url: imageUrl },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': ACCEPT_HEADER,
+          Accept: ACCEPT_HEADER,
+          'User-Agent': env.ALLEGRO_USER_AGENT,
+        },
       },
-    },
-  );
-  return response.data.imageId;
+    );
+  } catch (error) {
+    throw toOfferError(error);
+  }
+  return response.data.location;
 }
 
-export async function createAllegroOffer(
+// /sale/offers (klasyczny endpoint) jest wyłączony dla integracji od 2024 — patrz:
+// https://developer.allegro.pl/news/na-poczatku-2024-roku-wylaczymy-zasoby-sale-offers-sluzace-do-tworzenia-i-edycji-ofert-BvqK3XOaEcW
+// Aktualny endpoint to /sale/product-offers (oferty oparte o katalog produktów Allegro).
+export async function createAllegroProductOffer(
   userId: string,
   payload: Record<string, unknown>,
 ): Promise<{ id: string }> {
   const token = await getAllegroToken(userId);
-  const response = await axios.post<{ id: string }>(
-    `${ALLEGRO_BASE_URL}/sale/offers`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': ACCEPT_HEADER,
-        Accept: ACCEPT_HEADER,
-        'Accept-Language': 'pl-PL',
-        'User-Agent': env.ALLEGRO_USER_AGENT,
+  try {
+    const response = await axios.post<{ id: string }>(
+      `${ALLEGRO_BASE_URL}/sale/product-offers`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': ACCEPT_HEADER,
+          Accept: ACCEPT_HEADER,
+          'Accept-Language': 'pl-PL',
+          'User-Agent': env.ALLEGRO_USER_AGENT,
+        },
       },
-    },
-  );
-  return response.data;
+    );
+    return response.data;
+  } catch (error) {
+    throw toOfferError(error, payload);
+  }
+}
+
+function toOfferError(error: unknown, payload?: Record<string, unknown>): AppError {
+  const axiosError = error as AxiosError<{
+    errors?: Array<{ message?: string; userMessage?: string; path?: string; code?: string }>;
+  }>;
+  const status = axiosError.response?.status ?? 502;
+  const errors = axiosError.response?.data?.errors;
+  const details = errors?.map((e) => `${e.path ?? ''} ${e.userMessage ?? e.message ?? ''}`.trim()).join('; ');
+
+  // Logujemy pełen payload + surową odpowiedź Allegro — komunikaty walidacji bywają mylące
+  // (np. błędny parametr wskazuje na inne pole niż faktyczna przyczyna), więc do diagnozy
+  // trzeba widzieć oba naraz.
+  logger.warn('allegro_api_request_failed', { status, errors, payload });
+
+  return new AppError(status, details || axiosError.message);
 }
 
 async function requestWithRetry<T>(url: string, token: string): Promise<AllegroRequestResult<T>> {

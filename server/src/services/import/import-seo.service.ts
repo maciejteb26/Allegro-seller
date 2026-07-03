@@ -12,10 +12,15 @@ import { generateMockSeo } from './import-seo-mock';
 
 type SeoInputRow = EnrichedImportRow;
 
-export async function generateSeoForImportRows(rows: SeoInputRow[], client?: ClientSettingsContext | null) {
+export async function generateSeoForImportRows(
+  rows: SeoInputRow[],
+  client?: ClientSettingsContext | null,
+  onProgress?: (done: number, total: number) => void,
+) {
   const results = [];
-  for (const row of rows) {
-    results.push(await generateSeoForRow(row, client));
+  for (let index = 0; index < rows.length; index += 1) {
+    results.push(await generateSeoForRow(rows[index], client));
+    onProgress?.(index + 1, rows.length);
   }
   return results;
 }

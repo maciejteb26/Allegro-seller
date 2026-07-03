@@ -2,13 +2,14 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, FileSpreadsheet, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth.store';
-import { STATS } from './constants';
 
 const HIGHLIGHTS = [
   'Import z Excela — setki produktów naraz',
   'Wyszukiwanie w katalogu Allegro po EAN',
   'Tytuł i opis SEO generowane przez AI',
 ];
+
+const TRUST_BADGES = ['Bez karty', '14 dni za darmo', 'Anuluj kiedy chcesz'];
 
 export function LandingHero() {
   const user = useAuthStore((s) => s.user);
@@ -54,7 +55,7 @@ export function LandingHero() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-12 border-stone-300">
+                  <Button asChild size="lg" variant="outline" className="h-12 border-warm-300">
                     <Link to="/dashboard">Panel</Link>
                   </Button>
                 </>
@@ -66,26 +67,26 @@ export function LandingHero() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-12 border-stone-300">
+                  <Button asChild size="lg" variant="outline" className="h-12 border-warm-300">
                     <Link to="/login">Mam konto</Link>
                   </Button>
                 </>
               )}
             </div>
 
-            <dl className="mt-10 grid grid-cols-3 gap-4 border-t border-stone-200 pt-8">
-              {STATS.map((item) => (
-                <div key={item.label}>
-                  <dt className="font-display text-2xl font-bold text-ink">{item.value}</dt>
-                  <dd className="mt-1 text-xs text-ink-faint sm:text-sm">{item.label}</dd>
-                </div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted">
+              {TRUST_BADGES.map((item) => (
+                <span key={item} className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-brand-600" />
+                  {item}
+                </span>
               ))}
-            </dl>
+            </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
-              <div className="flex items-center gap-2 border-b border-stone-100 pb-4">
+            <div className="rounded-2xl border border-warm-200 bg-white p-5 shadow-card">
+              <div className="flex items-center gap-2 border-b border-warm-100 pb-4">
                 <FileSpreadsheet className="h-5 w-5 text-primary-600" />
                 <span className="text-sm font-medium text-ink">Import · Zestawienie.xlsx</span>
                 <span className="ml-auto rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">

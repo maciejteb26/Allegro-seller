@@ -17,5 +17,3 @@ coverage/
 .nyc_output/
 supabase/.branches
 supabase/.temp
-server/prisma/migrations/*
-!server/prisma/migrations/.gitkeep

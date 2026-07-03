@@ -54,24 +54,38 @@ export async function parseImport(req: Request, res: Response, next: NextFunctio
   }
 }
 
+// Strumień NDJSON (jedna linia JSON na zdarzenie): { type: 'progress', done, total }
+// zakończony { type: 'done', ...wynik }. Import może mieć realne wywołania API (SerpAPI,
+// Anthropic, Allegro) per wiersz, więc jedna zbiorcza odpowiedź na końcu daje zero feedbacku.
+function startProgressStream(res: Response) {
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Cache-Control', 'no-cache');
+  return {
+    progress: (done: number, total: number) => res.write(`${JSON.stringify({ type: 'progress', done, total })}\n`),
+    done: (payload: Record<string, unknown>) => res.end(`${JSON.stringify({ type: 'done', ...payload })}\n`),
+  };
+}
+
 export async function enrichImport(req: Request, res: Response, next: NextFunction) {
+  const stream = startProgressStream(res);
   try {
     const userId = (req as AuthRequest).userId;
     const body = enrichImportSchema.parse(req.body);
     const client = await resolveClientContext(userId, body.clientId);
-    const enriched = await importService.enrichParsedRows(userId, body.rows, client);
+    const enriched = await importService.enrichParsedRows(userId, body.rows, client, stream.progress);
 
     const matched = enriched.filter((row) => row.enrichStatus === 'matched').length;
     const notFound = enriched.filter((row) => row.enrichStatus === 'not_found').length;
     const errors = enriched.filter((row) => row.enrichStatus === 'error').length;
 
-    res.json({ rows: enriched, summary: { matched, notFound, errors, total: enriched.length } });
+    stream.done({ rows: enriched, summary: { matched, notFound, errors, total: enriched.length } });
   } catch (error) {
     next(error);
   }
 }
 
 export async function generateSeo(req: Request, res: Response, next: NextFunction) {
+  const stream = startProgressStream(res);
   try {
     const userId = (req as AuthRequest).userId;
     const body = seoImportSchema.parse(req.body);
@@ -84,6 +98,7 @@ export async function generateSeo(req: Request, res: Response, next: NextFunctio
         externalProduct: row.externalProduct ?? null,
       })),
       client,
+      stream.progress,
     );
 
     const generated = rows.filter((row) => row.seoStatus === 'generated').length;
@@ -91,7 +106,7 @@ export async function generateSeo(req: Request, res: Response, next: NextFunctio
     const errors = rows.filter((row) => row.seoStatus === 'error').length;
     const aiCount = rows.filter((row) => row.seo?.mode === 'AI').length;
 
-    res.json({
+    stream.done({
       rows,
       summary: { generated, skipped, errors, aiCount, total: rows.length },
       client,
