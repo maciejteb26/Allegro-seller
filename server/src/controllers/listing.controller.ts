@@ -222,7 +222,12 @@ export async function publishListing(req: Request, res: Response, next: NextFunc
       });
 
       try {
-        const categoryId = await categoryService.getExternalCategoryId(listing.categoryId, platform as Platform);
+        const categoryId = await categoryService.resolveExternalCategoryId(
+          uid,
+          listing.categoryId,
+          platform as Platform,
+          listing.title,
+        );
         const dbListing = await prisma.listing.findUnique({
           where: { id: listing.id },
           include: { category: true, images: true },

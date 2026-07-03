@@ -1,8 +1,10 @@
 import { ListingStatus, Platform, PlatformStatus } from '@prisma/client';
 import { DEFAULT_IMPORT_CATEGORY_SLUG } from '../../constants/external-search.constants';
+import { sanitizeDescription } from '../../controllers/listing.controller';
 import { AppError } from '../../middleware/error.middleware';
 import { SeoImportRow } from '../../types/import.types';
 import { prisma } from '../../utils/prisma';
+import { logger } from '../../utils/logger';
 import * as categoryService from '../category.service';
 import * as imageService from '../image.service';
 import * as listingService from '../listing.service';
@@ -48,7 +50,7 @@ async function publishSingleRow(
   try {
     const listing = await listingService.createListing(userId, {
       title: row.seo.title,
-      description: row.seo.description,
+      description: sanitizeDescription(row.seo.description),
       basePrice: row.price,
       condition: row.condition ?? 'NEW',
       quantity: row.quantity > 0 ? row.quantity : 1,
@@ -71,6 +73,7 @@ async function publishSingleRow(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Błąd publikacji';
+    logger.error('import_publish_row_failed', { userId, rowIndex: row.rowIndex, message });
     return { ...row, publishStatus: 'error', publishMessage: message };
   }
 }
@@ -126,24 +129,34 @@ async function publishListingOnAllegro(
 
   await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.PUBLISHING } });
 
-  const categoryId = row.allegroProduct?.categoryId
-    || await categoryService.getExternalCategoryId(listing.categoryId, platform);
+  try {
+    const categoryId = row.allegroProduct?.categoryId
+      || await categoryService.resolveExternalCategoryId(userId, listing.categoryId, platform, listing.title);
 
-  const service = getPlatformService(platform);
-  const result = await service.publishListing(listing, categoryId);
+    const service = getPlatformService(platform);
+    const result = await service.publishListing(listing, categoryId, row.allegroProduct?.id);
 
-  await prisma.platformListing.update({
-    where: { listingId_platform: { listingId, platform } },
-    data: {
-      externalId: result.externalId,
-      externalUrl: result.externalUrl,
-      status: PlatformStatus.ACTIVE,
-      publishedAt: new Date(),
-    },
-  });
-  await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ACTIVE } });
+    await prisma.platformListing.update({
+      where: { listingId_platform: { listingId, platform } },
+      data: {
+        externalId: result.externalId,
+        externalUrl: result.externalUrl,
+        status: PlatformStatus.ACTIVE,
+        publishedAt: new Date(),
+      },
+    });
+    await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ACTIVE } });
 
-  return { externalUrl: result.externalUrl };
+    return { externalUrl: result.externalUrl };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Błąd publikacji';
+    await prisma.platformListing.update({
+      where: { listingId_platform: { listingId, platform } },
+      data: { status: PlatformStatus.ERROR, errorMessage: message },
+    });
+    await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ERROR } });
+    throw error;
+  }
 }
 
 async function resolveDefaultCategoryId(): Promise<string> {

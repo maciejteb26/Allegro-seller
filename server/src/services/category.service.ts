@@ -1,6 +1,8 @@
 import { Platform, VehicleType } from '@prisma/client';
 import { AppError } from '../middleware/error.middleware';
 import { prisma } from '../utils/prisma';
+import { logger } from '../utils/logger';
+import { getAllegroMatchingCategories } from './allegro-api.service';
 
 export async function getCategoryTree() {
   const all = await prisma.internalCategory.findMany({
@@ -53,6 +55,30 @@ export async function getExternalCategoryId(internalCategoryId: string, platform
   }
 
   return mapping.externalCategoryId;
+}
+
+// Zamiast polegać wyłącznie na sztywnej mapie kategorii wewnętrznych (może wskazywać na
+// nietrafioną kategorię ogólną), dla Allegro dopytujemy najpierw o kategorię dla konkretnego
+// tytułu produktu — dużo trafniejsze niż statyczna mapa 1:1 na kategorię wewnętrzną.
+export async function resolveExternalCategoryId(
+  userId: string,
+  internalCategoryId: string,
+  platform: Platform,
+  productTitle: string,
+): Promise<string> {
+  if (platform === Platform.ALLEGRO) {
+    try {
+      const { data } = await getAllegroMatchingCategories(userId, productTitle);
+      const best = data.find((c) => c.leaf) ?? data[0];
+      if (best) return best.id;
+      logger.warn('match_category_by_title_empty', { productTitle, resultCount: data.length });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn('match_category_by_title_failed', { productTitle, message });
+    }
+  }
+
+  return getExternalCategoryId(internalCategoryId, platform);
 }
 
 export async function getAttributeSchema(internalCategoryId: string, platform: Platform): Promise<object> {

@@ -15,14 +15,18 @@ export abstract class BasePlatformService {
   abstract platform: Platform;
   abstract mockMode: boolean;
 
-  async publishListing(listing: ListingWithRelations, categoryId: string): Promise<PublishResult> {
+  async publishListing(
+    listing: ListingWithRelations,
+    categoryId: string,
+    matchedProductId?: string,
+  ): Promise<PublishResult> {
     if (this.mockMode) {
       return this._mockPublish(listing);
     }
 
     const attributeSchema = await categoryService.getAttributeSchema(listing.categoryId, this.platform);
     this.buildPayload(listing, categoryId, attributeSchema);
-    return this._realPublish(listing, categoryId);
+    return this._realPublish(listing, categoryId, matchedProductId);
   }
 
   async endListing(_externalId: string): Promise<void> {
@@ -30,7 +34,11 @@ export abstract class BasePlatformService {
   }
 
   protected abstract _mockPublish(listing: ListingWithRelations): Promise<PublishResult>;
-  protected abstract _realPublish(listing: ListingWithRelations, categoryId: string): Promise<PublishResult>;
+  protected abstract _realPublish(
+    listing: ListingWithRelations,
+    categoryId: string,
+    matchedProductId?: string,
+  ): Promise<PublishResult>;
 
   buildPayload(listing: ListingWithRelations, categoryId: string, attributeSchema: object): object {
     return {
