@@ -16,12 +16,14 @@ export async function enrichImportRowsFull(
   userId: string,
   rows: ParsedImportRow[],
   client?: ClientSettingsContext | null,
+  onProgress?: (done: number, total: number) => void,
 ): Promise<EnrichedImportRow[]> {
   const results: EnrichedImportRow[] = [];
 
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index];
     results.push(await enrichSingleRow(userId, row, client));
+    onProgress?.(index + 1, rows.length);
 
     if ((index + 1) % ENRICH_BATCH_SIZE === 0 && index + 1 < rows.length) {
       await delay(ENRICH_BATCH_DELAY_MS);

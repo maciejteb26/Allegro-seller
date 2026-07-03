@@ -115,14 +115,69 @@ export async function parseImportFile(file: File, clientId?: string): Promise<Pa
   return data;
 }
 
-export async function enrichImportRows(rows: ParsedImportRow[], clientId?: string): Promise<EnrichImportResponse> {
-  const { data } = await apiClient.post<EnrichImportResponse>('/imports/enrich', { rows, clientId });
-  return data;
+export interface ImportProgress {
+  done: number;
+  total: number;
 }
 
-export async function generateImportSeo(rows: EnrichedImportRow[], clientId?: string): Promise<GenerateSeoResponse> {
-  const { data } = await apiClient.post<GenerateSeoResponse>('/imports/generate-seo', { rows, clientId });
-  return data;
+export async function enrichImportRows(
+  rows: ParsedImportRow[],
+  clientId?: string,
+  onProgress?: (progress: ImportProgress) => void,
+): Promise<EnrichImportResponse> {
+  return streamImportRequest<EnrichImportResponse>('/imports/enrich', { rows, clientId }, onProgress);
+}
+
+export async function generateImportSeo(
+  rows: EnrichedImportRow[],
+  clientId?: string,
+  onProgress?: (progress: ImportProgress) => void,
+): Promise<GenerateSeoResponse> {
+  return streamImportRequest<GenerateSeoResponse>('/imports/generate-seo', { rows, clientId }, onProgress);
+}
+
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+
+// Backend zwraca postęp jako NDJSON (jedna linia JSON na zdarzenie) zamiast jednej dużej
+// odpowiedzi na końcu — pozwala pokazać użytkownikowi X/N w trakcie długiego przetwarzania.
+async function streamImportRequest<T extends { rows: unknown[] }>(
+  path: string,
+  body: unknown,
+  onProgress?: (progress: ImportProgress) => void,
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok || !response.body) {
+    const message = await response.text().catch(() => '');
+    throw new Error(message || `Żądanie ${path} nie powiodło się (${response.status})`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: T | null = null;
+
+  for (;;) {
+    const { value, done: streamDone } = await reader.read();
+    if (streamDone) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const event = JSON.parse(line);
+      if (event.type === 'progress') onProgress?.({ done: event.done, total: event.total });
+      else if (event.type === 'done') result = event;
+    }
+  }
+
+  if (!result) throw new Error(`Żądanie ${path} zakończyło się bez wyniku`);
+  return result;
 }
 
 export interface PublishImportResponse {
