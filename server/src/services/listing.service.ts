@@ -13,6 +13,8 @@ export interface CreateListingData {
   title: string;
   description: string;
   productBrand?: string;
+  clientId?: string;
+  deliveryHint?: string;
   basePrice: number;
   condition: 'NEW' | 'USED' | 'DAMAGED';
   quantity?: number;

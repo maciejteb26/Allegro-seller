@@ -8,6 +8,8 @@ interface ClientRecord {
   importProfile: string;
   seoPrompt: string | null;
   sellerDomains: string[];
+  allegroReturnPolicyName: string | null;
+  allegroImpliedWarrantyName: string | null;
 }
 
 export function toClientSettingsContext(client: ClientRecord): ClientSettingsContext {
@@ -19,5 +21,7 @@ export function toClientSettingsContext(client: ClientRecord): ClientSettingsCon
     importProfile: client.importProfile,
     seoPrompt: client.seoPrompt,
     sellerDomains: client.sellerDomains ?? [],
+    allegroReturnPolicyName: client.allegroReturnPolicyName,
+    allegroImpliedWarrantyName: client.allegroImpliedWarrantyName,
   };
 }

@@ -33,7 +33,11 @@ export function buildAuthorizationUrl(userId: string): string {
     client_id: env.ALLEGRO_CLIENT_ID,
     redirect_uri: env.ALLEGRO_REDIRECT_URI,
     state,
-    scope: 'allegro:api:sale:offers:write allegro:api:sale:offers:read allegro:api:profile:read',
+    // allegro:api:sale:settings — wymagane do odczytu cenników dostaw i warunków
+    // zwrotów/rękojmi (GET /sale/shipping-rates, /after-sales-service-conditions/*),
+    // inaczej Allegro zwraca 403 "Brak dostępu do danego zasobu" mimo poprawnego tokenu.
+    scope:
+      'allegro:api:sale:offers:write allegro:api:sale:offers:read allegro:api:profile:read allegro:api:sale:settings',
   });
   return `${OAUTH_BASE}/auth/oauth/authorize?${params.toString()}`;
 }

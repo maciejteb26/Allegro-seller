@@ -6,4 +6,6 @@ export interface ClientSettingsContext {
   importProfile: string;
   seoPrompt: string | null;
   sellerDomains: string[];
+  allegroReturnPolicyName: string | null;
+  allegroImpliedWarrantyName: string | null;
 }

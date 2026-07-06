@@ -15,6 +15,8 @@ export interface ClientInput {
   seoPrompt?: string | null;
   sellerDomains?: string[];
   notes?: string | null;
+  allegroReturnPolicyName?: string | null;
+  allegroImpliedWarrantyName?: string | null;
 }
 
 const ALLOWED_SELLER_DOMAINS = new Set<string>(POPULAR_SELLER_DOMAINS);
@@ -108,6 +110,8 @@ export async function createClient(userId: string, input: ClientInput) {
       seoPrompt: input.seoPrompt?.trim() || null,
       sellerDomains: normalizeSellerDomains(input.sellerDomains),
       notes: input.notes?.trim() || null,
+      allegroReturnPolicyName: input.allegroReturnPolicyName?.trim() || null,
+      allegroImpliedWarrantyName: input.allegroImpliedWarrantyName?.trim() || null,
     },
   });
 
@@ -138,6 +142,12 @@ export async function updateClient(userId: string, clientId: string, input: Clie
       ...(input.seoPrompt !== undefined ? { seoPrompt: input.seoPrompt?.trim() || null } : {}),
       ...(input.sellerDomains !== undefined ? { sellerDomains: normalizeSellerDomains(input.sellerDomains) } : {}),
       ...(input.notes !== undefined ? { notes: input.notes?.trim() || null } : {}),
+      ...(input.allegroReturnPolicyName !== undefined
+        ? { allegroReturnPolicyName: input.allegroReturnPolicyName?.trim() || null }
+        : {}),
+      ...(input.allegroImpliedWarrantyName !== undefined
+        ? { allegroImpliedWarrantyName: input.allegroImpliedWarrantyName?.trim() || null }
+        : {}),
     },
   });
 }

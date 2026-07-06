@@ -27,6 +27,7 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   clients             Client[]
+  publishLogs         PublishLog[]
 }
 
 model Client {
@@ -43,7 +44,14 @@ model Client {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Nazwy zasobów już skonfigurowanych na koncie Allegro klienta (Ustawienia sprzedaży),
+  // dopasowywane po nazwie przy publikacji — to stała polityka konta, nie zmienia się produkt
+  // od produktu. Puste = bierzemy pierwszy skonfigurowany wpis z konta jako fallback.
+  allegroReturnPolicyName     String?
+  allegroImpliedWarrantyName  String?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings Listing[]
 
   @@unique([userId, slug])
 }
@@ -169,6 +177,11 @@ model PlatformCategoryMapping {
 model Listing {
   id          String      @id @default(cuid())
   userId      String
+  clientId    String?
+
+  // Tekst z kolumny "Dostawa" pliku importu klienta (np. "Kurier", "Paczkomat") — używany do
+  // dopasowania cennika dostaw na Allegro po nazwie przy publikacji.
+  deliveryHint  String?
 
   title         String
   description   String
@@ -201,6 +214,7 @@ model Listing {
   updatedAt DateTime      @updatedAt
 
   user             User             @relation(fields: [userId], references: [id])
+  client           Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
   category         InternalCategory @relation(fields: [categoryId], references: [id])
   images           ListingImage[]
   platformListings PlatformListing[]
@@ -241,6 +255,22 @@ model PlatformListing {
   listing        Listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([listingId, platform])
+}
+
+// Zdarzenia publikacji (sukces/błąd) — trwały log w bazie zamiast tylko w terminalu,
+// żeby błędy publikacji (np. na Allegro) były widoczne od razu w Supabase.
+model PublishLog {
+  id         String           @id @default(cuid())
+  userId     String
+  listingId  String?
+  platform   Platform
+  status     PublishLogStatus
+  message    String?
+  createdAt  DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // ============================================================
@@ -290,6 +320,11 @@ enum PlatformStatus {
   PENDING
   ACTIVE
   ENDED
+  ERROR
+}
+
+enum PublishLogStatus {
+  SUCCESS
   ERROR
 }
 

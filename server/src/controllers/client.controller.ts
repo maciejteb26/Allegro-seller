@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth.middleware';
 import * as clientService from '../services/client.service';
 import {
+  CLIENT_ALLEGRO_POLICY_NAME_MAX_LENGTH,
   CLIENT_IMPORT_PROFILES,
   CLIENT_SEO_PROMPT_MAX_LENGTH,
   CLIENT_VAT_RATES,
@@ -21,6 +22,8 @@ const clientSchema = z.object({
   seoPrompt: z.string().max(CLIENT_SEO_PROMPT_MAX_LENGTH).nullable().optional(),
   sellerDomains: z.array(sellerDomainSchema).optional(),
   notes: z.string().max(500).nullable().optional(),
+  allegroReturnPolicyName: z.string().max(CLIENT_ALLEGRO_POLICY_NAME_MAX_LENGTH).nullable().optional(),
+  allegroImpliedWarrantyName: z.string().max(CLIENT_ALLEGRO_POLICY_NAME_MAX_LENGTH).nullable().optional(),
 });
 
 function userId(req: Request): string {

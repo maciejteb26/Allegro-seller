@@ -51,6 +51,10 @@ export async function generateSeoForRows(
   return generateSeoForImportRows(rows, client, onProgress);
 }
 
-export async function publishRows(userId: string, rows: SeoImportRow[]): Promise<ImportPublishResultRow[]> {
-  return publishImportRows(userId, rows);
+export async function publishRows(
+  userId: string,
+  rows: SeoImportRow[],
+  client?: ClientSettingsContext | null,
+): Promise<ImportPublishResultRow[]> {
+  return publishImportRows(userId, rows, client ?? null);
 }

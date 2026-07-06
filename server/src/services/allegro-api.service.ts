@@ -40,6 +40,23 @@ interface AllegroCategoryParametersResponse {
   parameters: AllegroCategoryParameter[];
 }
 
+interface AllegroNamedResource {
+  id: string;
+  name: string;
+}
+
+interface AllegroShippingRatesResponse {
+  shippingRates: AllegroNamedResource[];
+}
+
+interface AllegroImpliedWarrantiesResponse {
+  impliedWarranties: AllegroNamedResource[];
+}
+
+interface AllegroReturnPoliciesResponse {
+  returnPolicies: AllegroNamedResource[];
+}
+
 interface AllegroRequestResult<T> {
   data: T;
   traceId: string | null;
@@ -177,6 +194,33 @@ export async function getAllegroSellerOffers(
   }
 
   return [...found.values()];
+}
+
+// Oferta wymaga wskazania istniejących na koncie ustawień sprzedażowych (cennik dostaw,
+// warunki zwrotu, rękojmia) — to zasoby zakładane przez sprzedawcę w panelu Allegro, nie coś
+// co możemy sami wymyślić (treści prawne). Publikacja korzysta z pierwszego skonfigurowanego wpisu.
+export async function getAllegroShippingRates(userId: string): Promise<AllegroRequestResult<AllegroNamedResource[]>> {
+  const token = await getAllegroToken(userId);
+  const result = await requestWithRetry<AllegroShippingRatesResponse>(`${ALLEGRO_BASE_URL}/sale/shipping-rates`, token);
+  return { data: result.data.shippingRates ?? [], traceId: result.traceId };
+}
+
+export async function getAllegroImpliedWarranties(userId: string): Promise<AllegroRequestResult<AllegroNamedResource[]>> {
+  const token = await getAllegroToken(userId);
+  const result = await requestWithRetry<AllegroImpliedWarrantiesResponse>(
+    `${ALLEGRO_BASE_URL}/after-sales-service-conditions/implied-warranties`,
+    token,
+  );
+  return { data: result.data.impliedWarranties ?? [], traceId: result.traceId };
+}
+
+export async function getAllegroReturnPolicies(userId: string): Promise<AllegroRequestResult<AllegroNamedResource[]>> {
+  const token = await getAllegroToken(userId);
+  const result = await requestWithRetry<AllegroReturnPoliciesResponse>(
+    `${ALLEGRO_BASE_URL}/after-sales-service-conditions/return-policies`,
+    token,
+  );
+  return { data: result.data.returnPolicies ?? [], traceId: result.traceId };
 }
 
 async function getAllegroToken(userId: string): Promise<string> {

@@ -3,7 +3,8 @@ import { AllegroCategoryParameter } from '../allegro-api.service';
 
 export interface ResolvedParameter {
   id: string;
-  values: string[];
+  values?: string[];
+  valuesIds?: string[];
 }
 
 interface ProductContext {
@@ -11,33 +12,51 @@ interface ProductContext {
   description: string;
 }
 
+const DICTIONARY_OPTION_LIMIT = 150;
+
+// Gdy AI nie potrafi wiarygodnie ustalić wartości (np. tytuł/opis nie wspominają marki), wolimy
+// nie zgadywać — ale atrybut słownikowy pozostaje wtedy pusty, a Allegro odrzuca całą ofertę jako
+// niekompletną. Większość kategorii ma w słowniku pozycję ogólną ("Inna", "Pozostałe",
+// "Nieznana"...) — to bezpieczniejszy fallback niż utrata publikacji.
+const GENERIC_DICTIONARY_PATTERNS = [/^inn[ayeą]\b/i, /^pozosta/i, /^nieznan/i, /^brak\b/i, /^nie dotyczy/i, /^n\/a$/i];
+
 // Allegro wymaga kompletu atrybutów kategorii przy tworzeniu nowego produktu (brak dopasowania
-// w katalogu). Prosimy AI o dopasowanie WOLNOTEKSTOWYCH atrybutów z tytułu/opisu.
-//
-// Parametry słownikowe (Stan, Marka, Smak, Producent...) są celowo pomijane — potwierdzone testem
-// na 4 różnych parametrach w 2 różnych kategoriach: w tym środowisku Allegro Sandbox każda
-// wartość słownikowa wraca jako "nieistniejąca" przy zapisie oferty, mimo że pochodzi z ich
-// własnego API odczytu metadanych (/sale/categories/{id}/parameters). To niespójność danych po
-// stronie Allegro dla tego konta/środowiska, nie coś możliwego do obejścia doborem wartości —
-// dotyczy to zarówno reguł, jak i AI, więc nie ma sensu tego dalej próbować tutaj.
+// w katalogu). Parametry wolnotekstowe wypełniamy jako `values` (tekst), a słownikowe (Marka,
+// Model, Kolor...) jako `valuesIds` — Allegro odrzuca próbę wysłania etykiety słownika przez pole
+// `values` komunikatem "wartość słownikowa nie istnieje", nawet jeśli etykieta jest poprawna;
+// wymaga właśnie identyfikatora z `dictionary[].id`.
 export async function resolveParametersWithAi(
   params: AllegroCategoryParameter[],
   context: ProductContext,
 ): Promise<ResolvedParameter[]> {
-  const textParams = params.filter((p) => !p.dictionary?.length);
-  if (!isAiEnabled() || textParams.length === 0) return [];
+  const resolved = await resolveWithAi(params, context);
+  return applyGenericDictionaryFallback(params, resolved);
+}
 
-  const prompt = buildPrompt(context, textParams);
+async function resolveWithAi(
+  params: AllegroCategoryParameter[],
+  context: ProductContext,
+): Promise<ResolvedParameter[]> {
+  if (!isAiEnabled() || params.length === 0) return [];
+
+  const prompt = buildPrompt(context, params);
 
   try {
-    const { text } = await completeText(prompt, { maxTokens: 400, temperature: 0 });
+    const { text } = await completeText(prompt, { maxTokens: 500, temperature: 0 });
     const parsed = parseJsonObject(text);
     if (!parsed) return [];
 
     const resolved: ResolvedParameter[] = [];
-    for (const param of textParams) {
+    for (const param of params) {
       const value = parsed[param.id];
-      if (value != null && value !== '') resolved.push({ id: param.id, values: [String(value)] });
+      if (value == null || value === '') continue;
+
+      if (param.dictionary?.length) {
+        const match = param.dictionary.find((d) => d.id === String(value));
+        if (match) resolved.push({ id: param.id, valuesIds: [match.id] });
+      } else {
+        resolved.push({ id: param.id, values: [String(value)] });
+      }
     }
     return resolved;
   } catch {
@@ -45,19 +64,63 @@ export async function resolveParametersWithAi(
   }
 }
 
+function applyGenericDictionaryFallback(
+  params: AllegroCategoryParameter[],
+  resolved: ResolvedParameter[],
+): ResolvedParameter[] {
+  const resolvedIds = new Set(resolved.map((r) => r.id));
+  const withFallback = [...resolved];
+
+  for (const param of params) {
+    if (resolvedIds.has(param.id) || !param.dictionary?.length) continue;
+    const fallback = param.dictionary.find((d) =>
+      GENERIC_DICTIONARY_PATTERNS.some((pattern) => pattern.test(d.value.trim())),
+    );
+    if (fallback) withFallback.push({ id: param.id, valuesIds: [fallback.id] });
+  }
+
+  return withFallback;
+}
+
 function buildPrompt(context: ProductContext, params: AllegroCategoryParameter[]): string {
-  const fields = params.map((p) => `- ${p.name} (id: ${p.id}) — krótka wartość tekstowa`).join('\n');
+  const fields = params
+    .map((p) => {
+      if (p.dictionary?.length) {
+        const options = rankDictionaryOptions(p.dictionary, context)
+          .slice(0, DICTIONARY_OPTION_LIMIT)
+          .map((d) => `"${d.id}"=${d.value}`)
+          .join(', ');
+        return `- ${p.name} (id: ${p.id}) — atrybut słownikowy, odpowiedz DOKŁADNIE jednym identyfikatorem (id, nie nazwą) z listy: ${options}`;
+      }
+      return `- ${p.name} (id: ${p.id}) — krótka wartość tekstowa`;
+    })
+    .join('\n');
 
   return `Jesteś asystentem uzupełniającym atrybuty oferty na Allegro na podstawie tytułu i opisu produktu.
 
 Tytuł: ${context.title}
 Opis: ${context.description.slice(0, 600)}
 
-Uzupełnij poniższe atrybuty tekstowe. Jeśli nie da się wiarygodnie ustalić wartości, pomiń dany atrybut (nie zgaduj na siłę).
+Uzupełnij poniższe atrybuty. Dla atrybutów słownikowych podaj wyłącznie id wybranej opcji (np. "123"),
+nigdy jej nazwę. Jeśli nie da się wiarygodnie ustalić wartości, pomiń dany atrybut (nie zgaduj na siłę).
 
 ${fields}
 
-Odpowiedz WYŁĄCZNIE obiektem JSON w formacie {"<id parametru>": "<wartość>", ...}, bez żadnego dodatkowego tekstu.`;
+Odpowiedz WYŁĄCZNIE obiektem JSON w formacie {"<id parametru>": "<wartość lub id opcji>", ...}, bez żadnego dodatkowego tekstu.`;
+}
+
+// Duże słowniki (setki opcji) nie mieszczą się sensownie w promptcie — przy ograniczeniu do
+// DICTIONARY_OPTION_LIMIT dajemy pierwszeństwo opcjom, których nazwa pojawia się w tytule/opisie.
+function rankDictionaryOptions(
+  dictionary: Array<{ id: string; value: string }>,
+  context: ProductContext,
+): Array<{ id: string; value: string }> {
+  if (dictionary.length <= DICTIONARY_OPTION_LIMIT) return dictionary;
+
+  const haystack = `${context.title} ${context.description}`.toLowerCase();
+  const matched = dictionary.filter((d) => haystack.includes(d.value.toLowerCase()));
+  const rest = dictionary.filter((d) => !matched.includes(d));
+  return [...matched, ...rest];
 }
 
 function parseJsonObject(text: string): Record<string, string> | null {

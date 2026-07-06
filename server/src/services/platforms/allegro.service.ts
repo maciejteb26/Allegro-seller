@@ -1,14 +1,17 @@
 import { Platform } from '@prisma/client';
 import { env } from '../../utils/env';
-import { buildPublicImageUrl } from '../../utils/image-public-token';
+import { getPresignedUrl } from '../image.service';
 import {
   uploadImageToAllegro,
   createAllegroProductOffer,
   getAllegroCategoryParameters,
+  getAllegroShippingRates,
+  getAllegroImpliedWarranties,
+  getAllegroReturnPolicies,
 } from '../allegro-api.service';
 import { BasePlatformService, ListingWithRelations, PublishResult } from './base.platform.service';
 import { mockPublish } from './helpers';
-import { resolveParametersWithAi } from './allegro-attribute-ai.service';
+import { resolveParametersWithAi, ResolvedParameter } from './allegro-attribute-ai.service';
 
 const ALLEGRO_WEB = env.ALLEGRO_SANDBOX
   ? 'https://allegro.pl.allegrosandbox.pl'
@@ -32,9 +35,9 @@ async function resolveProductParameters(
   title: string,
   description: string,
   catalogNumber: string | null,
-): Promise<Array<{ id: string; values: string[] }>> {
+): Promise<ResolvedParameter[]> {
   const { data: categoryParams } = await getAllegroCategoryParameters(userId, categoryId);
-  const parameters: Array<{ id: string; values: string[] }> = [];
+  const parameters: ResolvedParameter[] = [];
   const unresolved: typeof categoryParams = [];
 
   for (const param of categoryParams) {
@@ -63,6 +66,56 @@ async function resolveProductParameters(
   }
 
   return parameters;
+}
+
+// Wybiera zasób po nazwie (np. "Kurier" z kolumny "Dostawa" pliku klienta, albo nazwa cennika/
+// polityki ustawiona w danych klienta) dopasowanej do listy skonfigurowanej na koncie Allegro.
+// Dopasowanie jest dwukierunkowe (substring w obie strony), bo nazwy w Excelu bywają skrótami
+// pełnej nazwy cennika. Brak dopasowania — bierzemy pierwszy wpis z listy jako fallback.
+function pickByName<T extends { id: string; name: string }>(items: T[], preferredName?: string | null): T {
+  if (preferredName) {
+    const needle = preferredName.trim().toLowerCase();
+    const match = items.find(
+      (item) => item.name.toLowerCase().includes(needle) || needle.includes(item.name.toLowerCase()),
+    );
+    if (match) return match;
+  }
+  return items[0];
+}
+
+// Allegro wymaga wskazania w ofercie już istniejących na koncie ustawień sprzedażowych — to
+// nie są dane produktu, tylko konfiguracja konta zakładana w panelu Allegro (Ustawienia
+// sprzedaży > Cenniki dostaw / Zwroty i reklamacje). Cennik dostaw dopasowujemy po nazwie z
+// kolumny "Dostawa" pliku klienta (deliveryHint); zwroty/rękojmia to stała polityka konta, więc
+// dopasowujemy je po nazwie ustawionej raz w danych klienta (Client.allegro*Name). Brak
+// dopasowania po nazwie -> pierwszy skonfigurowany wpis; brak jakiegokolwiek wpisu -> publikacja
+// nie może się powieść, więc informujemy o tym wprost zamiast wysyłać ofertę bez wymaganych pól.
+async function resolveAfterSalesAndDelivery(
+  userId: string,
+  preferences: { deliveryHint?: string | null; returnPolicyName?: string | null; impliedWarrantyName?: string | null },
+): Promise<{ shippingRateId: string; returnPolicyId: string; impliedWarrantyId: string }> {
+  const [shippingRates, returnPolicies, impliedWarranties] = await Promise.all([
+    getAllegroShippingRates(userId),
+    getAllegroReturnPolicies(userId),
+    getAllegroImpliedWarranties(userId),
+  ]);
+
+  const missing: string[] = [];
+  if (shippingRates.data.length === 0) missing.push('cennik dostaw');
+  if (returnPolicies.data.length === 0) missing.push('warunki zwrotu');
+  if (impliedWarranties.data.length === 0) missing.push('warunki rękojmi');
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Uzupełnij w panelu Allegro (Ustawienia sprzedaży): ${missing.join(', ')} — bez tego Allegro odrzuca każdą ofertę.`,
+    );
+  }
+
+  return {
+    shippingRateId: pickByName(shippingRates.data, preferences.deliveryHint).id,
+    returnPolicyId: pickByName(returnPolicies.data, preferences.returnPolicyName).id,
+    impliedWarrantyId: pickByName(impliedWarranties.data, preferences.impliedWarrantyName).id,
+  };
 }
 
 function escapeHtml(value: string): string {
@@ -102,32 +155,41 @@ export class AllegroService extends BasePlatformService {
     categoryId: string,
     matchedProductId?: string,
   ): Promise<PublishResult> {
-    // 1. Upload zdjęć do Allegro CDN (max 8)
+    // 1. Upload zdjęć do Allegro CDN (max 8) — bezpośredni presigned URL do S3/Supabase Storage,
+    // bo to publiczny, zawsze dostępny endpoint (bez potrzeby tunelowania naszego backendu).
     const imageLocations: string[] = [];
     for (const img of listing.images.slice(0, 8)) {
-      const url = buildPublicImageUrl(img.id);
+      const url = await getPresignedUrl(img.s3Key);
       const location = await uploadImageToAllegro(listing.userId, url);
       imageLocations.push(location);
     }
 
     // 2. productSet: dopasowany produkt z katalogu Allegro, albo propozycja nowego produktu inline
     // (z EAN, gdy kategoria go wymaga i mamy prawdziwą wartość). Nazwa produktu/oferty jest
-    // ograniczona przez Allegro do 75 znaków.
+    // ograniczona przez Allegro do 75 znaków. Cennik dostaw/zwroty/rękojmia to ustawienia konta,
+    // niezależne od kategorii — pobieramy je równolegle z parametrami produktu.
     const name = truncateName(listing.title);
-    const product = matchedProductId
-      ? { id: matchedProductId }
-      : {
-          name,
-          category: { id: categoryId },
-          images: imageLocations,
-          parameters: await resolveProductParameters(
+    const [product, afterSales] = await Promise.all([
+      matchedProductId
+        ? Promise.resolve({ id: matchedProductId })
+        : resolveProductParameters(
             listing.userId,
             categoryId,
             listing.title,
             listing.description,
             listing.catalogNumber,
-          ),
-        };
+          ).then((parameters) => ({
+            name,
+            category: { id: categoryId },
+            images: imageLocations,
+            parameters,
+          })),
+      resolveAfterSalesAndDelivery(listing.userId, {
+        deliveryHint: listing.deliveryHint,
+        returnPolicyName: listing.client?.allegroReturnPolicyName,
+        impliedWarrantyName: listing.client?.allegroImpliedWarrantyName,
+      }),
+    ]);
 
     // 3. Buduj payload oferty (POST /sale/product-offers — aktualny endpoint, oparty o katalog produktów).
     const payload = {
@@ -144,6 +206,13 @@ export class AllegroService extends BasePlatformService {
       },
       stock: { available: listing.quantity, unit: 'UNIT' },
       publication: { status: 'ACTIVE' },
+      afterSalesServices: {
+        impliedWarranty: { id: afterSales.impliedWarrantyId },
+        returnPolicy: { id: afterSales.returnPolicyId },
+      },
+      delivery: {
+        shippingRates: { id: afterSales.shippingRateId },
+      },
     };
 
     // 4. Wyślij ofertę
