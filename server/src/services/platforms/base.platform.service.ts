@@ -8,7 +8,7 @@ export interface PublishResult {
 }
 
 export type ListingWithRelations = Prisma.ListingGetPayload<{
-  include: { category: true; images: true };
+  include: { category: true; images: true; client: true };
 }>;
 
 export abstract class BasePlatformService {

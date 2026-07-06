@@ -3,6 +3,7 @@ import { DEFAULT_IMPORT_CATEGORY_SLUG } from '../../constants/external-search.co
 import { sanitizeDescription } from '../../controllers/listing.controller';
 import { AppError } from '../../middleware/error.middleware';
 import { SeoImportRow } from '../../types/import.types';
+import { ClientSettingsContext } from '../../types/client.types';
 import { prisma } from '../../utils/prisma';
 import { logger } from '../../utils/logger';
 import * as categoryService from '../category.service';
@@ -25,12 +26,13 @@ export interface ImportPublishResultRow extends SeoImportRow {
 export async function publishImportRows(
   userId: string,
   rows: SeoImportRow[],
+  client: ClientSettingsContext | null,
 ): Promise<ImportPublishResultRow[]> {
   const categoryId = await resolveDefaultCategoryId();
   const results: ImportPublishResultRow[] = [];
 
   for (const row of rows) {
-    results.push(await publishSingleRow(userId, row, categoryId));
+    results.push(await publishSingleRow(userId, row, categoryId, client));
   }
 
   return results;
@@ -40,6 +42,7 @@ async function publishSingleRow(
   userId: string,
   row: SeoImportRow,
   categoryId: string,
+  client: ClientSettingsContext | null,
 ): Promise<ImportPublishResultRow> {
   if (!row.seo?.title || !row.seo.description) {
     return { ...row, publishStatus: 'skipped', publishMessage: 'Brak wygenerowanego SEO' };
@@ -59,6 +62,8 @@ async function publishSingleRow(
       catalogNumber: row.identifierRaw || row.searchPhrase || undefined,
       vehicleType: 'OTHER',
       categoryId,
+      clientId: client?.clientId,
+      deliveryHint: row.delivery || undefined,
       rawUserInput: JSON.stringify({ importRowIndex: row.rowIndex, source: 'excel-import' }),
     });
 
@@ -111,7 +116,7 @@ async function publishListingOnAllegro(
 
   const listing = await prisma.listing.findFirst({
     where: { id: listingId, userId },
-    include: { category: true, images: true },
+    include: { category: true, images: true, client: true },
   });
   if (!listing || listing.images.length === 0) {
     throw new AppError(400, 'Brak zdjęć do publikacji');

@@ -231,7 +231,7 @@ export async function publishListing(req: Request, res: Response, next: NextFunc
         );
         const dbListing = await prisma.listing.findUnique({
           where: { id: listing.id },
-          include: { category: true, images: true },
+          include: { category: true, images: true, client: true },
         });
         const service = getPlatformService(platform as Platform);
         const result = await service.publishListing(dbListing!, categoryId);

@@ -8,6 +8,7 @@ export const CLIENT_IMPORT_PROFILES = ['auto', 'zestawienie', 'lista_produktow']
 export type ClientImportProfile = (typeof CLIENT_IMPORT_PROFILES)[number];
 
 export const CLIENT_SEO_PROMPT_MAX_LENGTH = 2000;
+export const CLIENT_ALLEGRO_POLICY_NAME_MAX_LENGTH = 120;
 
 export const CLIENT_SELLER_OPTIONS = POPULAR_SELLER_DOMAINS.map((domain) => ({
   value: domain,

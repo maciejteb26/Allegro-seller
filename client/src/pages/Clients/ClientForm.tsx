@@ -20,6 +20,8 @@ export function ClientForm({ initial, onSubmit, onCancel }: ClientFormProps) {
   const [seoPrompt, setSeoPrompt] = useState(initial?.seoPrompt ?? '');
   const [sellerDomains, setSellerDomains] = useState<string[]>(initial?.sellerDomains ?? []);
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [allegroReturnPolicyName, setAllegroReturnPolicyName] = useState(initial?.allegroReturnPolicyName ?? '');
+  const [allegroImpliedWarrantyName, setAllegroImpliedWarrantyName] = useState(initial?.allegroImpliedWarrantyName ?? '');
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,6 +36,8 @@ export function ClientForm({ initial, onSubmit, onCancel }: ClientFormProps) {
         seoPrompt: seoPrompt.trim() || null,
         sellerDomains,
         notes: notes || null,
+        allegroReturnPolicyName: allegroReturnPolicyName.trim() || null,
+        allegroImpliedWarrantyName: allegroImpliedWarrantyName.trim() || null,
       });
     } finally {
       setSaving(false);
@@ -91,6 +95,31 @@ export function ClientForm({ initial, onSubmit, onCancel }: ClientFormProps) {
 
       <ClientSellerPicker selected={sellerDomains} onChange={setSellerDomains} />
       <ClientSeoPromptField value={seoPrompt} onChange={setSeoPrompt} />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="client-return-policy">Nazwa polityki zwrotów na Allegro</Label>
+          <Input
+            id="client-return-policy"
+            value={allegroReturnPolicyName}
+            onChange={(e) => setAllegroReturnPolicyName(e.target.value)}
+            placeholder="np. Zwroty 14 dni"
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-ink-muted">Dopasowywana po nazwie do polityk skonfigurowanych na koncie Allegro klienta</p>
+        </div>
+        <div>
+          <Label htmlFor="client-warranty">Nazwa rękojmi na Allegro</Label>
+          <Input
+            id="client-warranty"
+            value={allegroImpliedWarrantyName}
+            onChange={(e) => setAllegroImpliedWarrantyName(e.target.value)}
+            placeholder="np. Rękojmia standardowa"
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-ink-muted">Puste = użyjemy pierwszej skonfigurowanej na koncie Allegro klienta</p>
+        </div>
+      </div>
 
       <div>
         <Label htmlFor="client-notes">Notatki (opcjonalnie)</Label>

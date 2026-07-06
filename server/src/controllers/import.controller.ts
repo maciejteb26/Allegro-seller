@@ -120,6 +120,7 @@ export async function publishImport(req: Request, res: Response, next: NextFunct
   try {
     const userId = (req as AuthRequest).userId;
     const body = publishImportSchema.parse(req.body);
+    const client = await resolveClientContext(userId, body.clientId);
     const rows = await importService.publishRows(
       userId,
       body.rows.map((row) => ({
@@ -130,6 +131,7 @@ export async function publishImport(req: Request, res: Response, next: NextFunct
         seo: row.seo ?? null,
         seoStatus: row.seoStatus ?? 'pending',
       })),
+      client,
     );
 
     const published = rows.filter((row) => row.publishStatus === 'published').length;

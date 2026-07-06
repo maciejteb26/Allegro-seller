@@ -13,6 +13,8 @@ export interface Client {
   seoPrompt: string | null;
   sellerDomains: string[];
   notes: string | null;
+  allegroReturnPolicyName: string | null;
+  allegroImpliedWarrantyName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +27,8 @@ export interface ClientInput {
   seoPrompt?: string | null;
   sellerDomains?: string[];
   notes?: string | null;
+  allegroReturnPolicyName?: string | null;
+  allegroImpliedWarrantyName?: string | null;
 }
 
 export const SEO_PROMPT_MAX_LENGTH = 2000;
