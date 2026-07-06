@@ -11,6 +11,7 @@ import * as listingService from '../listing.service';
 import * as marginService from '../margin.service';
 import * as titleGeneratorService from '../title-generator.service';
 import { getPlatformService } from '../platforms';
+import { logPublishAttempt } from '../publish-log.service';
 
 export type ImportPublishStatus = 'published' | 'skipped' | 'error';
 
@@ -146,6 +147,7 @@ async function publishListingOnAllegro(
       },
     });
     await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ACTIVE } });
+    await logPublishAttempt({ userId, platform, status: 'SUCCESS', listingId });
 
     return { externalUrl: result.externalUrl };
   } catch (error) {
@@ -155,6 +157,7 @@ async function publishListingOnAllegro(
       data: { status: PlatformStatus.ERROR, errorMessage: message },
     });
     await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ERROR } });
+    await logPublishAttempt({ userId, platform, status: 'ERROR', listingId, message });
     throw error;
   }
 }

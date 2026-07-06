@@ -11,6 +11,7 @@ import * as titleGeneratorService from '../services/title-generator.service';
 import * as marginService from '../services/margin.service';
 import { getPlatformService } from '../services/platforms';
 import * as categoryService from '../services/category.service';
+import { logPublishAttempt } from '../services/publish-log.service';
 import { prisma } from '../utils/prisma';
 
 const createSchema = z.object({
@@ -240,6 +241,7 @@ export async function publishListing(req: Request, res: Response, next: NextFunc
           data: { externalId: result.externalId, externalUrl: result.externalUrl, status: PlatformStatus.ACTIVE, publishedAt: new Date() },
         });
         results[platform] = 'ACTIVE';
+        await logPublishAttempt({ userId: uid, platform: platform as Platform, status: 'SUCCESS', listingId: listing.id });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         await prisma.platformListing.update({
@@ -247,6 +249,7 @@ export async function publishListing(req: Request, res: Response, next: NextFunc
           data: { status: PlatformStatus.ERROR, errorMessage: message },
         });
         results[platform] = 'ERROR';
+        await logPublishAttempt({ userId: uid, platform: platform as Platform, status: 'ERROR', listingId: listing.id, message });
       }
     }
 

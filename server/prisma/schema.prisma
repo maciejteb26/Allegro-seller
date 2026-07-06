@@ -27,6 +27,7 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   clients             Client[]
+  publishLogs         PublishLog[]
 }
 
 model Client {
@@ -243,6 +244,22 @@ model PlatformListing {
   @@unique([listingId, platform])
 }
 
+// Zdarzenia publikacji (sukces/błąd) — trwały log w bazie zamiast tylko w terminalu,
+// żeby błędy publikacji (np. na Allegro) były widoczne od razu w Supabase.
+model PublishLog {
+  id         String           @id @default(cuid())
+  userId     String
+  listingId  String?
+  platform   Platform
+  status     PublishLogStatus
+  message    String?
+  createdAt  DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
 // ============================================================
 // ENUMS
 // ============================================================
@@ -290,6 +307,11 @@ enum PlatformStatus {
   PENDING
   ACTIVE
   ENDED
+  ERROR
+}
+
+enum PublishLogStatus {
+  SUCCESS
   ERROR
 }
 
