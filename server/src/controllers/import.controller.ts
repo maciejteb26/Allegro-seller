@@ -22,7 +22,12 @@ export async function parseImport(req: Request, res: Response, next: NextFunctio
     const clientId = req.body.clientId ? String(req.body.clientId) : undefined;
     const client = await resolveClientContext(userId, clientId);
 
-    const detected = importService.detectAndParseImportFile(req.file.buffer, req.file.originalname);
+    // multer/busboy dekoduje nazwe pliku z multipart/form-data jako latin1,
+    // mimo ze przegladarka wysyla ja w UTF-8 - trzeba przekodowac recznie,
+    // inaczej polskie znaki w nazwie pliku zamieniaja sie w krzaczki
+    const fileName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+
+    const detected = importService.detectAndParseImportFile(req.file.buffer, fileName);
     const preferredProfile = client?.importProfile && client.importProfile !== 'auto' ? client.importProfile : null;
     const requestedProfile = req.body.profile ? String(req.body.profile) : preferredProfile;
 
@@ -31,7 +36,7 @@ export async function parseImport(req: Request, res: Response, next: NextFunctio
       : detected.profile;
 
     const rows = profile !== detected.profile
-      ? importService.parseImportFile(profile, req.file.buffer, req.file.originalname)
+      ? importService.parseImportFile(profile, req.file.buffer, fileName)
       : detected.rows;
 
     if (rows.length === 0) {
@@ -44,7 +49,7 @@ export async function parseImport(req: Request, res: Response, next: NextFunctio
     res.json({
       profile,
       profileLabel: profile === IMPORT_PROFILE.LISTA_PRODUKTOW ? 'Lista produktów' : 'Zestawienie',
-      fileName: req.file.originalname,
+      fileName,
       totalRows: rows.length,
       rows,
       client,
