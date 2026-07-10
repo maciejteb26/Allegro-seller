@@ -6,6 +6,39 @@ export function fitTitleToLimit(title: string, limit = ALLEGRO_TITLE_LIMIT): str
   return normalized.slice(0, limit).trim();
 }
 
+// AI czasem (słusznie) nie chce zmyślać słów kluczowych tylko po to, by dobić do limitu, więc
+// zwraca krótszy, ale w 100% prawdziwy tytuł. Zamiast liczyć wyłącznie na AI, dopełniamy go
+// deterministycznie prawdziwymi słowami z już znanych danych produktu (kategoria, stan,
+// opakowanie, dostawa, nazwy z katalogu/źródła) — nigdy nic nie wymyślamy, tylko dokładamy to,
+// co i tak już wiemy o produkcie, a czego zabrakło w tytule.
+export function padTitleToTarget(
+  title: string,
+  extraSources: Array<string | null | undefined>,
+  limit = ALLEGRO_TITLE_LIMIT,
+  minTarget = limit - 5,
+): string {
+  let result = title.trim();
+  if (result.length >= minTarget) return result;
+
+  const usedWords = new Set(result.toLowerCase().split(/\s+/).filter(Boolean));
+  const candidateWords = extraSources
+    .flatMap((source) => (source ?? '').split(/\s+/))
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  for (const word of candidateWords) {
+    if (result.length >= minTarget) break;
+    const key = word.toLowerCase();
+    if (usedWords.has(key)) continue;
+    const candidate = `${result} ${word}`.trim();
+    if (candidate.length > limit) continue;
+    result = candidate;
+    usedWords.add(key);
+  }
+
+  return result;
+}
+
 export function buildKeywordTitle(parts: Array<string | null | undefined>, limit = ALLEGRO_TITLE_LIMIT): string {
   const tokens = parts
     .flatMap((part) => (part ?? '').split(/\s+/))
