@@ -4,8 +4,9 @@ import { WizardData } from './types';
 import { CONDITION_PART_LABELS } from './constants';
 import { Platform } from '@/types';
 import { useQuery } from '@tanstack/react-query';
-import { getPlatforms } from '@/api/platforms.api';
+import { getPlatforms, getAllegroSaleSettings } from '@/api/platforms.api';
 import { getMarginRules } from '@/api/margins.api';
+import { AllegroCategorySelect } from './AllegroCategorySelect';
 
 const PLATFORMS: Platform[] = ['ALLEGRO'];
 
@@ -20,6 +21,12 @@ export function Step4Submit({ data, onChange, existingImageCount = 0 }: Props) {
   const { data: margins = [] } = useQuery({ queryKey: ['margins'], queryFn: getMarginRules });
 
   const activePlatforms = new Set(platforms.filter((platform) => platform.isActive).map((platform) => platform.platform));
+
+  const { data: saleSettings } = useQuery({
+    queryKey: ['allegro-sale-settings'],
+    queryFn: getAllegroSaleSettings,
+    enabled: activePlatforms.has('ALLEGRO'),
+  });
   const imageCount = existingImageCount + data.images.length;
   const conditionLabel = data.condition ? CONDITION_PART_LABELS[data.condition] ?? data.condition : '—';
 
@@ -89,6 +96,88 @@ export function Step4Submit({ data, onChange, existingImageCount = 0 }: Props) {
           })}
         </div>
       </div>
+
+      {data.selectedPlatforms.includes('ALLEGRO') && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-gray-700">Ustawienia sprzedaży Allegro</h4>
+          <p className="text-xs text-gray-500">
+            Zostaw puste, aby system dopasował automatycznie (lub użył domyślnych ustawień klienta).
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Label htmlFor="shippingRate">Dostawa</Label>
+              <select
+                id="shippingRate"
+                value={data.allegroShippingRateId ?? ''}
+                onChange={(e) => onChange({ allegroShippingRateId: e.target.value || undefined })}
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">— automatycznie —</option>
+                {saleSettings?.shippingRates.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="returnPolicy">Zwroty</Label>
+              <select
+                id="returnPolicy"
+                value={data.allegroReturnPolicyId ?? ''}
+                onChange={(e) => onChange({ allegroReturnPolicyId: e.target.value || undefined })}
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">— automatycznie —</option>
+                {saleSettings?.returnPolicies.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="impliedWarranty">Rękojmia</Label>
+              <select
+                id="impliedWarranty"
+                value={data.allegroImpliedWarrantyId ?? ''}
+                onChange={(e) => onChange({ allegroImpliedWarrantyId: e.target.value || undefined })}
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">— automatycznie —</option>
+                {saleSettings?.impliedWarranties.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="responsibleProducer">Producent odpowiedzialny</Label>
+              <select
+                id="responsibleProducer"
+                value={data.allegroResponsibleProducerId ?? ''}
+                onChange={(e) => onChange({ allegroResponsibleProducerId: e.target.value || undefined })}
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">— automatycznie —</option>
+                {saleSettings?.responsibleProducers.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <AllegroCategorySelect
+            categoryId={data.allegroCategoryId}
+            categoryName={data.allegroCategoryName}
+            onChange={(category) =>
+              onChange({ allegroCategoryId: category?.id, allegroCategoryName: category?.name })
+            }
+          />
+        </div>
+      )}
 
       {/* Podsumowanie */}
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">

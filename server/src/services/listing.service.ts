@@ -32,6 +32,12 @@ export interface CreateListingData {
   partDetails?: string;
   damageDescription?: string;
   rawUserInput?: string;
+  allegroShippingRateId?: string;
+  allegroReturnPolicyId?: string;
+  allegroImpliedWarrantyId?: string;
+  allegroResponsibleProducerId?: string;
+  allegroCategoryId?: string;
+  allegroCategoryName?: string;
 }
 
 export async function createListing(userId: string, data: CreateListingData) {
@@ -60,12 +66,13 @@ export async function getListing(userId: string, listingId: string) {
 export interface ListingsFilter {
   status?: ListingStatus;
   search?: string;
-  cursor?: string;
+  page?: number;
   limit?: number;
 }
 
 export async function getListings(userId: string, filter: ListingsFilter = {}) {
   const limit = Math.min(filter.limit ?? 20, 100);
+  const page = Math.max(filter.page ?? 1, 1);
 
   const where: Prisma.ListingWhereInput = {
     userId,
@@ -78,20 +85,19 @@ export async function getListings(userId: string, filter: ListingsFilter = {}) {
     }),
   };
 
-  const listings = await prisma.listing.findMany({
-    where,
-    include: LISTING_WITH_RELATIONS,
-    orderBy: { createdAt: 'desc' },
-    take: limit + 1,
-    ...(filter.cursor && { cursor: { id: filter.cursor }, skip: 1 }),
-  });
+  const [listings, totalCount] = await Promise.all([
+    prisma.listing.findMany({
+      where,
+      include: LISTING_WITH_RELATIONS,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.listing.count({ where }),
+  ]);
 
-  const hasMore = listings.length > limit;
-  const items = hasMore ? listings.slice(0, limit) : listings;
-  const nextCursor = hasMore ? items[items.length - 1].id : null;
-
-  const enriched = await Promise.all(items.map(enrichListing));
-  return { items: enriched, nextCursor, hasMore };
+  const enriched = await Promise.all(listings.map(enrichListing));
+  return { items: enriched, page, pageSize: limit, totalCount, totalPages: Math.max(Math.ceil(totalCount / limit), 1) };
 }
 
 export async function updateListing(

@@ -1,5 +1,5 @@
 import { completeText, isAiEnabled } from '../ai.client';
-import { AllegroCategoryParameter } from '../allegro-api.service';
+import { AllegroCategoryParameter, formatNumericParamValue } from '../allegro-api.service';
 
 export interface ResolvedParameter {
   id: string;
@@ -18,7 +18,15 @@ const DICTIONARY_OPTION_LIMIT = 150;
 // nie zgadywać — ale atrybut słownikowy pozostaje wtedy pusty, a Allegro odrzuca całą ofertę jako
 // niekompletną. Większość kategorii ma w słowniku pozycję ogólną ("Inna", "Pozostałe",
 // "Nieznana"...) — to bezpieczniejszy fallback niż utrata publikacji.
-const GENERIC_DICTIONARY_PATTERNS = [/^inn[ayeą]\b/i, /^pozosta/i, /^nieznan/i, /^brak\b/i, /^nie dotyczy/i, /^n\/a$/i];
+const GENERIC_DICTIONARY_PATTERNS = [
+  /^inn[ayeą]\b/i,
+  /^pozosta/i,
+  /^nieznan/i,
+  /^brak\b/i,
+  /^nie dotyczy/i,
+  /^n\/a$/i,
+  /^bez\s/i, // np. "bez marki", "bez producenta" — częsty generyczny wpis w słowniku Marka
+];
 
 // Allegro wymaga kompletu atrybutów kategorii przy tworzeniu nowego produktu (brak dopasowania
 // w katalogu). Parametry wolnotekstowe wypełniamy jako `values` (tekst), a słownikowe (Marka,
@@ -55,7 +63,7 @@ async function resolveWithAi(
         const match = param.dictionary.find((d) => d.id === String(value));
         if (match) resolved.push({ id: param.id, valuesIds: [match.id] });
       } else {
-        resolved.push({ id: param.id, values: [String(value)] });
+        resolved.push({ id: param.id, values: [normalizeNumericIfNeeded(param, String(value))] });
       }
     }
     return resolved;
@@ -82,6 +90,14 @@ function applyGenericDictionaryFallback(
   return withFallback;
 }
 
+// Atrybuty liczbowe (type: integer/float — dowolna nazwa: Pojemność, Moc, Rozmiar...) wymagają
+// czystej liczby. Allegro odrzuca wartość z jednostką ("300 ml") jako "nie jest liczbą". AI
+// czasem mimo instrukcji w prompcie dokleja jednostkę, więc dodatkowo sanityzujemy wynik.
+function normalizeNumericIfNeeded(param: AllegroCategoryParameter, value: string): string {
+  if (param.type !== 'integer' && param.type !== 'float') return value;
+  return formatNumericParamValue(param, value) ?? value;
+}
+
 function buildPrompt(context: ProductContext, params: AllegroCategoryParameter[]): string {
   const fields = params
     .map((p) => {
@@ -91,6 +107,10 @@ function buildPrompt(context: ProductContext, params: AllegroCategoryParameter[]
           .map((d) => `"${d.id}"=${d.value}`)
           .join(', ');
         return `- ${p.name} (id: ${p.id}) — atrybut słownikowy, odpowiedz DOKŁADNIE jednym identyfikatorem (id, nie nazwą) z listy: ${options}`;
+      }
+      if (p.type === 'integer' || p.type === 'float') {
+        const unitHint = p.unit ? ` w jednostce ${p.unit}` : '';
+        return `- ${p.name} (id: ${p.id}) — WYŁĄCZNIE liczba${unitHint} (np. "300"), bez jednostki i bez tekstu w odpowiedzi`;
       }
       return `- ${p.name} (id: ${p.id}) — krótka wartość tekstowa`;
     })

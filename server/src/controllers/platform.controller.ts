@@ -6,7 +6,11 @@ import { prisma } from '../utils/prisma';
 import * as allegroApiService from '../services/allegro-api.service';
 import { encrypt } from '../utils/crypto';
 import * as allegroOAuthService from '../services/allegro-oauth.service';
+import * as categoryService from '../services/category.service';
 import { env } from '../utils/env';
+import { logger } from '../utils/logger';
+
+const BRAND_SEARCH_LIMIT = 50;
 
 function userId(req: Request): string {
   return (req as AuthRequest).userId;
@@ -97,6 +101,70 @@ export async function saveAllegroMappings(req: Request, res: Response, next: Nex
   }
 }
 
+export async function getAllegroSaleSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const uid = userId(req);
+    const [shippingRates, returnPolicies, impliedWarranties, responsibleProducers] = await Promise.all([
+      allegroApiService.getAllegroShippingRates(uid),
+      allegroApiService.getAllegroReturnPolicies(uid),
+      allegroApiService.getAllegroImpliedWarranties(uid),
+      allegroApiService.getAllegroResponsibleProducers(uid),
+    ]);
+    res.json({
+      shippingRates: shippingRates.data,
+      returnPolicies: returnPolicies.data,
+      impliedWarranties: impliedWarranties.data,
+      responsibleProducers: responsibleProducers.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function searchAllegroCategories(req: Request, res: Response, next: NextFunction) {
+  try {
+    const uid = userId(req);
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    if (!query) {
+      res.json({ categories: [] });
+      return;
+    }
+    const categories = await categoryService.searchAllegroCategories(uid, query);
+    res.json({ categories: categories.map((c) => ({ id: c.id, name: c.name })) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function searchAllegroBrands(req: Request, res: Response, next: NextFunction) {
+  try {
+    const uid = userId(req);
+    const categoryId = typeof req.query.categoryId === 'string' ? req.query.categoryId : '';
+    const title = typeof req.query.title === 'string' ? req.query.title : '';
+    const query = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+
+    if (!categoryId) {
+      res.status(400).json({ error: 'Brak categoryId' });
+      return;
+    }
+
+    const { categoryId: externalCategoryId } = await categoryService.resolveExternalCategoryId(
+      uid,
+      categoryId,
+      Platform.ALLEGRO,
+      title || 'produkt',
+    );
+    const { data: params } = await allegroApiService.getAllegroCategoryParameters(uid, externalCategoryId);
+    const dictionary = params.find((p) => p.name.toLowerCase() === 'marka')?.dictionary ?? [];
+
+    const filtered = query ? dictionary.filter((d) => d.value.toLowerCase().includes(query)) : dictionary;
+
+    res.json({ brands: filtered.slice(0, BRAND_SEARCH_LIMIT).map((d) => ({ id: d.id, name: d.value })) });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getAllegroOAuthStart(req: Request, res: Response, next: NextFunction) {
   try {
     const authorizationUrl = allegroOAuthService.buildAuthorizationUrl(userId(req));
@@ -111,12 +179,22 @@ export async function getAllegroOAuthCallback(req: Request, res: Response, _next
     const code = typeof req.query.code === 'string' ? req.query.code : '';
     const state = typeof req.query.state === 'string' ? req.query.state : '';
     if (!code || !state) {
-      res.send(oauthHtml('error', 'ALLEGRO', 'Brak parametrow autoryzacji'));
+      // Allegro nie zwrocilo code/state - albo uzytkownik odrzucil zgode, albo
+      // aplikacja OAuth nie ma uprawnien do jednego z zadanych scope'ow. Prawdziwy
+      // powod przychodzi w error/error_description, wiec logujemy go w calosci.
+      const oauthError = typeof req.query.error === 'string' ? req.query.error : null;
+      const oauthErrorDescription =
+        typeof req.query.error_description === 'string' ? req.query.error_description : null;
+      logger.warn('allegro_oauth_callback_rejected', { oauthError, oauthErrorDescription, query: req.query });
+      res.send(oauthHtml('error', 'ALLEGRO', oauthErrorDescription || oauthError || 'Brak parametrow autoryzacji'));
       return;
     }
     await allegroOAuthService.exchangeCodeAndStoreConnection(code, state);
     res.send(oauthHtml('success', 'ALLEGRO'));
-  } catch (_error) {
+  } catch (error) {
+    logger.warn('allegro_oauth_token_exchange_failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
     res.send(oauthHtml('error', 'ALLEGRO', 'Blad wymiany tokenu'));
   }
 }

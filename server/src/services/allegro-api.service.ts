@@ -15,7 +15,7 @@ interface AllegroMeResponse {
   company?: { name?: string };
 }
 
-interface AllegroCategory {
+export interface AllegroCategory {
   id: string;
   name: string;
   leaf: boolean;
@@ -32,7 +32,10 @@ interface AllegroMatchingCategoriesResponse {
 export interface AllegroCategoryParameter {
   id: string;
   name: string;
+  type: string;
   required: boolean;
+  unit?: string | null;
+  restrictions?: { precision?: number };
   dictionary?: Array<{ id: string; value: string }>;
 }
 
@@ -40,7 +43,21 @@ interface AllegroCategoryParametersResponse {
   parameters: AllegroCategoryParameter[];
 }
 
-interface AllegroNamedResource {
+// Allegro podaje wprost typ pola (type: "integer"/"float"/"string") i precyzję
+// (restrictions.precision) — dzieki temu formatujemy poprawnie KAZDY parametr liczbowy
+// (Pojemnosc, Moc, Rozmiar, cokolwiek), a nie tylko te, ktorych nazwa akurat pasuje do
+// regexu. Wysylanie liczby z jednostka ("300 ml") Allegro odrzuca jako "nie jest liczba".
+export function formatNumericParamValue(
+  param: Pick<AllegroCategoryParameter, 'type' | 'restrictions'>,
+  raw: string,
+): string | null {
+  const match = raw.match(/(\d+(?:[.,]\d+)?)/);
+  if (!match) return null;
+  const num = Number(match[1].replace(',', '.'));
+  return param.type === 'integer' ? String(Math.round(num)) : num.toFixed(param.restrictions?.precision ?? 2);
+}
+
+export interface AllegroNamedResource {
   id: string;
   name: string;
 }
@@ -55,6 +72,10 @@ interface AllegroImpliedWarrantiesResponse {
 
 interface AllegroReturnPoliciesResponse {
   returnPolicies: AllegroNamedResource[];
+}
+
+interface AllegroResponsibleProducersResponse {
+  responsibleProducers: AllegroNamedResource[];
 }
 
 interface AllegroRequestResult<T> {
@@ -221,6 +242,20 @@ export async function getAllegroReturnPolicies(userId: string): Promise<AllegroR
     token,
   );
   return { data: result.data.returnPolicies ?? [], traceId: result.traceId };
+}
+
+// GPSR (od 13.12.2024) wymaga wskazania producenta odpowiedzialnego za produkt — to tez zasob
+// zakladany raz na koncie (Sales Center > Ustawienia sprzedazy > Producenci), analogicznie do
+// cennikow dostaw i warunkow zwrotu/rekojmi.
+export async function getAllegroResponsibleProducers(
+  userId: string,
+): Promise<AllegroRequestResult<AllegroNamedResource[]>> {
+  const token = await getAllegroToken(userId);
+  const result = await requestWithRetry<AllegroResponsibleProducersResponse>(
+    `${ALLEGRO_BASE_URL}/sale/responsible-producers`,
+    token,
+  );
+  return { data: result.data.responsibleProducers ?? [], traceId: result.traceId };
 }
 
 async function getAllegroToken(userId: string): Promise<string> {

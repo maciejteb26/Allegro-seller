@@ -111,6 +111,12 @@ export default function EditListingPage() {
         partSide: data.partSide,
         partDetails: data.partDetails,
         damageDescription: data.damageDescription,
+        allegroShippingRateId: data.allegroShippingRateId,
+        allegroReturnPolicyId: data.allegroReturnPolicyId,
+        allegroImpliedWarrantyId: data.allegroImpliedWarrantyId,
+        allegroResponsibleProducerId: data.allegroResponsibleProducerId,
+        allegroCategoryId: data.allegroCategoryId,
+        allegroCategoryName: data.allegroCategoryName,
       });
 
       if (data.images.length > 0) {

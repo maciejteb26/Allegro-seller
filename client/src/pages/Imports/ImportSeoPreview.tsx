@@ -35,7 +35,7 @@ export function ImportSeoPreview({ row }: ImportSeoPreviewProps) {
             {overLimit && <AlertTriangle className="h-3 w-3 text-amber-500" />}
           </span>
         </div>
-        <p className="font-medium text-gray-900">{row.seo.title}</p>
+        <p className="font-medium text-gray-900 uppercase">{row.seo.title}</p>
       </div>
       <div>
         <div className="mb-1 text-xs text-gray-500">Opis SEO</div>
@@ -77,7 +77,10 @@ export function ImportSeoPreview({ row }: ImportSeoPreviewProps) {
         </a>
       )}
       {row.seoMessage && <p className="text-xs text-amber-700">{row.seoMessage}</p>}
-      {row.publishMessage && row.publishStatus !== 'published' && (
+      {row.publishMessage && row.publishMessage.startsWith('⚠️') && (
+        <p className="text-xs font-medium text-amber-700">{row.publishMessage}</p>
+      )}
+      {row.publishMessage && row.publishStatus !== 'published' && !row.publishMessage.startsWith('⚠️') && (
         <p className="text-xs text-red-700">{row.publishMessage}</p>
       )}
     </div>

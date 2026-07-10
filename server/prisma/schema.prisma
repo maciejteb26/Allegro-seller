@@ -183,6 +183,18 @@ model Listing {
   // dopasowania cennika dostaw na Allegro po nazwie przy publikacji.
   deliveryHint  String?
 
+  // Id konkretnego cennika dostaw / polityki zwrotów / rękojmi z konta Allegro (wybrane wprost
+  // z listy w UI). Ma pierwszeństwo przed dopasowaniem po nazwie (deliveryHint / Client.allegro*Name).
+  allegroShippingRateId       String?
+  allegroReturnPolicyId       String?
+  allegroImpliedWarrantyId    String?
+  allegroResponsibleProducerId String?
+
+  // Reczny wybor kategorii Allegro (obchodzi automatyczne dopasowanie po tytule) — na wypadek
+  // gdy automatyczne dopasowanie zawiedzie i spadnie na niepoprawna kategorie domyslna.
+  allegroCategoryId   String?
+  allegroCategoryName String?
+
   title         String
   description   String
   productBrand  String?

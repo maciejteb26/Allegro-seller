@@ -21,6 +21,7 @@ router.use(authMiddleware);
 router.get('/', ctrl.getListings);
 router.post('/', ctrl.createListing);
 router.post('/parse-input', aiParserRateLimit, aiParserCtrl.parseListingInput);
+router.patch('/bulk/allegro-settings', ctrl.bulkUpdateAllegroSettings);
 router.get('/:id/titles', ctrl.getListingTitles);
 router.post('/:id/publish', ctrl.publishListing);
 router.get('/:id/publish-status', ctrl.getPublishStatus);

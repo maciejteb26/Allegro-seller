@@ -68,7 +68,7 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
                   <td className="max-w-xs px-3 py-2">
                     {row.seo ? (
                       <div>
-                        <div className="truncate font-medium" title={row.seo.title}>{row.seo.title}</div>
+                        <div className="truncate font-medium uppercase" title={row.seo.title}>{row.seo.title}</div>
                         <div className="text-xs text-gray-400">{row.seo.titleLength}/75 · {row.seo.mode}</div>
                       </div>
                     ) : (
@@ -120,6 +120,14 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
                           ? 'Błąd publikacji'
                           : STATUS_LABELS[row.enrichStatus ?? 'pending']}
                     </span>
+                    {row.publishMessage?.startsWith('⚠️') && (
+                      <span
+                        className="mt-1 block max-w-[180px] truncate text-xs font-medium text-amber-700"
+                        title={row.publishMessage}
+                      >
+                        {row.publishMessage}
+                      </span>
+                    )}
                   </td>
                 </tr>
                 {isExpanded && hasSeo && (
