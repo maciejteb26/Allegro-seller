@@ -140,17 +140,33 @@ const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}
 
 // Backend zwraca postęp jako NDJSON (jedna linia JSON na zdarzenie) zamiast jednej dużej
 // odpowiedzi na końcu — pozwala pokazać użytkownikowi X/N w trakcie długiego przetwarzania.
+// Uzywa surowego fetch (nie apiClient), wiec omija interceptor axios, ktory normalnie
+// odswieza wygasly (15 min) accessToken przy 401 — importy czesto trwaja dluzej, wiec
+// robimy to samo tutaj recznie, inaczej sesja usera "wygasa" mimo aktywnego uzytkowania.
 async function streamImportRequest<T extends { rows: unknown[] }>(
   path: string,
   body: unknown,
   onProgress?: (progress: ImportProgress) => void,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  let response = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+
+  if (response.status === 401) {
+    const refreshed = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
+    if (refreshed.ok) {
+      response = await fetch(`${API_BASE}${path}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    }
+  }
+
   if (!response.ok || !response.body) {
     const message = await response.text().catch(() => '');
     throw new Error(message || `Żądanie ${path} nie powiodło się (${response.status})`);
