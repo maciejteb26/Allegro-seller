@@ -22,12 +22,20 @@ export interface CreateListingData {
   partDetails?: string;
   damageDescription?: string;
   rawUserInput?: string;
+  allegroShippingRateId?: string;
+  allegroReturnPolicyId?: string;
+  allegroImpliedWarrantyId?: string;
+  allegroResponsibleProducerId?: string;
+  allegroCategoryId?: string;
+  allegroCategoryName?: string;
 }
 
 export interface ListingsResponse {
   items: Listing[];
-  nextCursor: string | null;
-  hasMore: boolean;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
 }
 
 export async function createListing(data: CreateListingData): Promise<Listing> {
@@ -38,7 +46,7 @@ export async function createListing(data: CreateListingData): Promise<Listing> {
 export async function getListings(params?: {
   status?: ListingStatus;
   search?: string;
-  cursor?: string;
+  page?: number;
   limit?: number;
 }): Promise<ListingsResponse> {
   const { data } = await apiClient.get<ListingsResponse>('/listings', { params });
@@ -57,6 +65,21 @@ export async function updateListing(id: string, data: Partial<CreateListingData>
 
 export async function deleteListing(id: string): Promise<void> {
   await apiClient.delete(`/listings/${id}`);
+}
+
+export interface BulkAllegroSettings {
+  allegroShippingRateId?: string | null;
+  allegroReturnPolicyId?: string | null;
+  allegroImpliedWarrantyId?: string | null;
+  allegroResponsibleProducerId?: string | null;
+}
+
+export async function bulkUpdateAllegroSettings(ids: string[], settings: BulkAllegroSettings): Promise<{ updated: number }> {
+  const { data } = await apiClient.patch<{ updated: number }>('/listings/bulk/allegro-settings', {
+    ids,
+    ...settings,
+  });
+  return data;
 }
 
 export async function duplicateListing(id: string): Promise<Listing> {

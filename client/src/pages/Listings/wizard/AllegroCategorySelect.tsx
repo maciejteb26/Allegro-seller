@@ -4,13 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
-import { searchAllegroBrands } from '@/api/platforms.api';
+import { searchAllegroCategories } from '@/api/platforms.api';
 
 interface Props {
-  value?: string;
-  onChange: (brand: string | undefined) => void;
   categoryId?: string;
-  title?: string;
+  categoryName?: string;
+  onChange: (category: { id: string; name: string } | undefined) => void;
 }
 
 function resolveDropdownDirection(target: EventTarget | null): boolean {
@@ -20,43 +19,44 @@ function resolveDropdownDirection(target: EventTarget | null): boolean {
   return window.innerHeight - rect.bottom < 320;
 }
 
-export function ProductBrandSelect({ value, onChange, categoryId, title }: Props) {
-  const [search, setSearch] = useState(value ?? '');
+// Uzupelnia automatyczne dopasowanie kategorii Allegro (po tytule) — do recznej korekty, gdy
+// automat zawiedzie i spadnie na niepoprawna kategorie domyslna (patrz CATEGORY_FALLBACK_WARNING).
+export function AllegroCategorySelect({ categoryId, categoryName, onChange }: Props) {
+  const [search, setSearch] = useState(categoryName ?? '');
   const [open, setOpen] = useState(false);
   const [openUpwards, setOpenUpwards] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: brands = [], isFetching } = useQuery({
-    queryKey: ['allegro-brands', categoryId, debouncedSearch],
-    queryFn: () => searchAllegroBrands({ categoryId: categoryId!, title, q: debouncedSearch }),
-    enabled: open && !!categoryId,
+  const { data: categories = [], isFetching } = useQuery({
+    queryKey: ['allegro-categories-search', debouncedSearch],
+    queryFn: () => searchAllegroCategories(debouncedSearch),
+    enabled: open && debouncedSearch.trim().length >= 3,
   });
 
   useEffect(() => {
-    setSearch(value ?? '');
-  }, [value]);
+    setSearch(categoryName ?? '');
+  }, [categoryName]);
 
   return (
     <div>
-      <Label className="mb-1 block text-sm font-medium">Marka produktu</Label>
+      <Label className="mb-1 block text-sm font-medium">Kategoria Allegro (ręczna korekta)</Label>
       <div className="relative">
         <Input
-          placeholder={categoryId ? 'Szukaj marki...' : 'Najpierw wybierz kategorię'}
+          placeholder="Szukaj kategorii Allegro (min. 3 znaki)..."
           value={search}
-          disabled={!categoryId}
           onFocus={(e) => {
             setOpenUpwards(resolveDropdownDirection(e.currentTarget));
             setOpen(true);
           }}
           onChange={(e) => {
             setSearch(e.target.value);
-            onChange(e.target.value.trim() || undefined);
+            if (!e.target.value.trim()) onChange(undefined);
             setOpenUpwards(resolveDropdownDirection(e.currentTarget));
             setOpen(true);
           }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
         />
-        {open && categoryId && (
+        {open && debouncedSearch.trim().length >= 3 && (
           <div
             className={cn(
               'absolute z-50 max-h-48 w-full overflow-y-auto rounded-xl border border-gray-300 bg-white shadow-xl',
@@ -65,32 +65,32 @@ export function ProductBrandSelect({ value, onChange, categoryId, title }: Props
           >
             {isFetching && <p className="px-4 py-3 text-sm text-gray-400">Szukam...</p>}
             {!isFetching &&
-              brands.map((brand) => (
+              categories.map((category) => (
                 <button
-                  key={brand.id}
+                  key={category.id}
                   type="button"
                   onMouseDown={() => {
-                    onChange(brand.name);
-                    setSearch(brand.name);
+                    onChange({ id: category.id, name: category.name });
+                    setSearch(category.name);
                     setOpen(false);
                   }}
                   className={cn(
                     'w-full px-4 py-2 text-left text-sm hover:bg-gray-50',
-                    value === brand.name && 'bg-primary-50 font-medium text-primary-700',
+                    categoryId === category.id && 'bg-primary-50 font-medium text-primary-700',
                   )}
                 >
-                  {brand.name}
+                  {category.name}
                 </button>
               ))}
-            {!isFetching && brands.length === 0 && (
-              <p className="px-4 py-3 text-sm text-gray-500">
-                Brak dopasowań w słowniku Allegro — zostanie użyta wpisana wartość:{' '}
-                <span className="font-medium">{search || '—'}</span>
-              </p>
+            {!isFetching && categories.length === 0 && (
+              <p className="px-4 py-3 text-sm text-gray-500">Brak dopasowań w kategoriach Allegro.</p>
             )}
           </div>
         )}
       </div>
+      <p className="mt-1 text-xs text-gray-400">
+        Zostaw puste, aby system dopasował kategorię automatycznie na podstawie tytułu.
+      </p>
     </div>
   );
 }

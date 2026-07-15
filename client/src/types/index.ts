@@ -84,6 +84,12 @@ export interface Listing {
   partSide?: string;
   partDetails?: string;
   damageDescription?: string;
+  allegroShippingRateId?: string;
+  allegroReturnPolicyId?: string;
+  allegroImpliedWarrantyId?: string;
+  allegroResponsibleProducerId?: string;
+  allegroCategoryId?: string;
+  allegroCategoryName?: string;
   status: ListingStatus;
   createdAt: string;
   updatedAt: string;

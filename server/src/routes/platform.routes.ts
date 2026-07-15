@@ -14,7 +14,10 @@ router.post('/platforms/:platform/connect', ctrl.connectPlatform);
 router.delete('/platforms/:platform', ctrl.disconnectPlatform);
 
 router.get('/platforms/allegro/oauth/start', ctrl.getAllegroOAuthStart);
+router.get('/platforms/allegro/sale-settings', ctrl.getAllegroSaleSettings);
+router.get('/platforms/allegro/brands', ctrl.searchAllegroBrands);
 router.get('/platforms/allegro/categories', ctrl.getAllegroCategories);
+router.get('/platforms/allegro/categories/search', ctrl.searchAllegroCategories);
 router.post('/platforms/allegro/mappings', ctrl.saveAllegroMappings);
 
 export default router;

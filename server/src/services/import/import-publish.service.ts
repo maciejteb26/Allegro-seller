@@ -7,6 +7,7 @@ import { ClientSettingsContext } from '../../types/client.types';
 import { prisma } from '../../utils/prisma';
 import { logger } from '../../utils/logger';
 import * as categoryService from '../category.service';
+import { CATEGORY_FALLBACK_WARNING } from '../category.service';
 import * as imageService from '../image.service';
 import * as listingService from '../listing.service';
 import * as marginService from '../margin.service';
@@ -73,7 +74,7 @@ async function publishSingleRow(
     return {
       ...row,
       publishStatus: 'published',
-      publishMessage: 'Opublikowano na Allegro',
+      publishMessage: publishResult.categoryFallbackWarning ?? 'Opublikowano na Allegro',
       listingId: listing.id,
       externalUrl: publishResult.externalUrl,
     };
@@ -107,7 +108,7 @@ async function publishListingOnAllegro(
   userId: string,
   listingId: string,
   row: SeoImportRow,
-): Promise<{ externalUrl?: string }> {
+): Promise<{ externalUrl?: string; categoryFallbackWarning?: string }> {
   const platform: Platform = 'ALLEGRO';
   const active = await prisma.userPlatform.findFirst({
     where: { userId, platform, isActive: true },
@@ -135,9 +136,20 @@ async function publishListingOnAllegro(
 
   await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.PUBLISHING } });
 
+  let matchedByFallback = false;
   try {
-    const categoryId = row.allegroProduct?.categoryId
-      || await categoryService.resolveExternalCategoryId(userId, listing.categoryId, platform, listing.title);
+    // Priorytet: reczny wybor uzytkownika > dopasowany produkt z katalogu > automatyczne
+    // dopasowanie po tytule. Do dopasowania po tytule uzywamy krotkiej, oryginalnej frazy z
+    // importu (draftTitle), a NIE finalnego tytulu SEO (listing.title) — Allegro trafnie
+    // dopasowuje kategorie dla krotkich, naturalnych fraz, ale zwraca 0 wynikow dla dlugich
+    // (70-75 znakow) tytulow upakowanych slowami kluczowymi, ktore SEO celowo maksymalizuje.
+    const categoryMatchPhrase = row.draftTitle || listing.title;
+    let categoryId = listing.allegroCategoryId || row.allegroProduct?.categoryId;
+    if (!categoryId) {
+      const resolved = await categoryService.resolveExternalCategoryId(userId, listing.categoryId, platform, categoryMatchPhrase);
+      categoryId = resolved.categoryId;
+      matchedByFallback = resolved.matchedByFallback;
+    }
 
     const service = getPlatformService(platform);
     const result = await service.publishListing(listing, categoryId, row.allegroProduct?.id);
@@ -152,18 +164,21 @@ async function publishListingOnAllegro(
       },
     });
     await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ACTIVE } });
-    await logPublishAttempt({ userId, platform, status: 'SUCCESS', listingId });
 
-    return { externalUrl: result.externalUrl };
+    const categoryFallbackWarning = matchedByFallback ? CATEGORY_FALLBACK_WARNING : undefined;
+    await logPublishAttempt({ userId, platform, status: 'SUCCESS', listingId, message: categoryFallbackWarning });
+
+    return { externalUrl: result.externalUrl, categoryFallbackWarning };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Błąd publikacji';
+    const rawMessage = error instanceof Error ? error.message : 'Błąd publikacji';
+    const message = matchedByFallback ? `${CATEGORY_FALLBACK_WARNING} ${rawMessage}` : rawMessage;
     await prisma.platformListing.update({
       where: { listingId_platform: { listingId, platform } },
       data: { status: PlatformStatus.ERROR, errorMessage: message },
     });
     await prisma.listing.update({ where: { id: listingId }, data: { status: ListingStatus.ERROR } });
     await logPublishAttempt({ userId, platform, status: 'ERROR', listingId, message });
-    throw error;
+    throw new Error(message);
   }
 }
 

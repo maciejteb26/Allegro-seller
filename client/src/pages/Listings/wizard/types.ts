@@ -29,6 +29,12 @@ export interface WizardData {
   basePrice?: number;
   quantity?: number;
   selectedPlatforms: Platform[];
+  allegroShippingRateId?: string;
+  allegroReturnPolicyId?: string;
+  allegroImpliedWarrantyId?: string;
+  allegroResponsibleProducerId?: string;
+  allegroCategoryId?: string;
+  allegroCategoryName?: string;
 }
 
 export const WIZARD_DEFAULTS: WizardData = {

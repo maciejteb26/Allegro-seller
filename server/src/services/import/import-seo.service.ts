@@ -7,7 +7,7 @@ import { completeSeoPrompt, isAiEnabled, resolveAiMode } from '../ai.client';
 import { ClientSettingsContext } from '../../types/client.types';
 import { CLIENT_VAT_LABELS } from '../../constants/client.constants';
 import { AllegroCatalogProduct, EnrichedImportRow, ImportSeoContent } from '../../types/import.types';
-import { buildKeywordTitle, fitTitleToLimit, safeParseSeoJson } from './import-seo.utils';
+import { buildKeywordTitle, fitTitleToLimit, padTitleToTarget, safeParseSeoJson } from './import-seo.utils';
 import { generateMockSeo } from './import-seo-mock';
 
 type SeoInputRow = EnrichedImportRow;
@@ -57,10 +57,12 @@ function generateWithRules(row: SeoInputRow, client?: ClientSettingsContext | nu
     row.allegroProduct?.categoryName,
   ]);
 
+  const finalTitle = fitTitleToLimit(title);
+
   return {
-    title: fitTitleToLimit(title),
+    title: finalTitle,
     description: buildDescription(row, productName, conditionLabel, client),
-    titleLength: fitTitleToLimit(title).length,
+    titleLength: finalTitle.length,
     mode: 'RULES',
   };
 }
@@ -76,7 +78,17 @@ async function generateWithAi(row: SeoInputRow, client?: ClientSettingsContext |
   const parsed = safeParseSeoJson(text);
   if (!parsed?.title || !parsed.description) return generateWithRules(row, client);
 
-  const title = fitTitleToLimit(parsed.title);
+  const aiTitle = fitTitleToLimit(parsed.title);
+  const paddedTitle = padTitleToTarget(aiTitle, [
+    row.allegroProduct?.categoryName,
+    row.condition ? IMPORT_CONDITION_LABELS[row.condition] : null,
+    row.packaging,
+    row.delivery,
+    row.allegroProduct?.name,
+    row.externalProduct?.title,
+    row.draftTitle,
+  ]);
+  const title = paddedTitle;
   const description = parsed.description.length >= ALLEGRO_DESCRIPTION_MIN
     ? parsed.description
     : buildDescription(row, row.allegroProduct?.name || row.draftTitle, row.condition ? IMPORT_CONDITION_LABELS[row.condition] : null, client);

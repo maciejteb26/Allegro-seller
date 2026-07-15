@@ -123,6 +123,8 @@ export function Step2Details({ data, onChange, showValidation }: Props) {
       <ProductBrandSelect
         value={data.productBrand}
         onChange={(productBrand) => onChange({ productBrand })}
+        categoryId={data.categoryId}
+        title={data.title}
       />
 
       {automotive && (

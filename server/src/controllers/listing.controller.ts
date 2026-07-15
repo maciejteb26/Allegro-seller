@@ -11,6 +11,7 @@ import * as titleGeneratorService from '../services/title-generator.service';
 import * as marginService from '../services/margin.service';
 import { getPlatformService } from '../services/platforms';
 import * as categoryService from '../services/category.service';
+import { CATEGORY_FALLBACK_WARNING } from '../services/category.service';
 import { logPublishAttempt } from '../services/publish-log.service';
 import { prisma } from '../utils/prisma';
 
@@ -35,12 +36,26 @@ const createSchema = z.object({
   partDetails: z.string().nullish(),
   damageDescription: z.string().nullish(),
   rawUserInput: z.string().nullish(),
+  allegroShippingRateId: z.string().nullish(),
+  allegroReturnPolicyId: z.string().nullish(),
+  allegroImpliedWarrantyId: z.string().nullish(),
+  allegroResponsibleProducerId: z.string().nullish(),
+  allegroCategoryId: z.string().nullish(),
+  allegroCategoryName: z.string().nullish(),
+});
+
+const bulkAllegroSettingsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+  allegroShippingRateId: z.string().nullable().optional(),
+  allegroReturnPolicyId: z.string().nullable().optional(),
+  allegroImpliedWarrantyId: z.string().nullable().optional(),
+  allegroResponsibleProducerId: z.string().nullable().optional(),
 });
 
 const filterSchema = z.object({
   status: z.nativeEnum(ListingStatus).optional(),
   search: z.string().optional(),
-  cursor: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
 });
 
@@ -108,6 +123,25 @@ export async function updateListing(req: Request, res: Response, next: NextFunct
       data as Partial<CreateListingData>,
     );
     res.json(listing);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function bulkUpdateAllegroSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { ids, ...fields } = bulkAllegroSettingsSchema.parse(req.body);
+    const data = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+    if (Object.keys(data).length === 0) {
+      res.status(400).json({ error: 'Brak pol do aktualizacji' });
+      return;
+    }
+
+    const result = await prisma.listing.updateMany({
+      where: { id: { in: ids }, userId: userId(req) },
+      data,
+    });
+    res.json({ updated: result.count });
   } catch (err) {
     next(err);
   }
@@ -222,13 +256,20 @@ export async function publishListing(req: Request, res: Response, next: NextFunc
         update: { finalPrice, platformTitle, status: PlatformStatus.PENDING, errorMessage: null },
       });
 
+      let matchedByFallback = false;
       try {
-        const categoryId = await categoryService.resolveExternalCategoryId(
-          uid,
-          listing.categoryId,
-          platform as Platform,
-          listing.title,
-        );
+        // Priorytet: reczny wybor uzytkownika (allegroCategoryId) > automatyczne dopasowanie po tytule.
+        let categoryId = listing.allegroCategoryId ?? undefined;
+        if (!categoryId) {
+          const resolved = await categoryService.resolveExternalCategoryId(
+            uid,
+            listing.categoryId,
+            platform as Platform,
+            listing.title,
+          );
+          categoryId = resolved.categoryId;
+          matchedByFallback = resolved.matchedByFallback;
+        }
         const dbListing = await prisma.listing.findUnique({
           where: { id: listing.id },
           include: { category: true, images: true, client: true },
@@ -241,9 +282,11 @@ export async function publishListing(req: Request, res: Response, next: NextFunc
           data: { externalId: result.externalId, externalUrl: result.externalUrl, status: PlatformStatus.ACTIVE, publishedAt: new Date() },
         });
         results[platform] = 'ACTIVE';
-        await logPublishAttempt({ userId: uid, platform: platform as Platform, status: 'SUCCESS', listingId: listing.id });
+        const warning = matchedByFallback ? CATEGORY_FALLBACK_WARNING : undefined;
+        await logPublishAttempt({ userId: uid, platform: platform as Platform, status: 'SUCCESS', listingId: listing.id, message: warning });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
+        const rawMessage = err instanceof Error ? err.message : 'Unknown error';
+        const message = matchedByFallback ? `${CATEGORY_FALLBACK_WARNING} ${rawMessage}` : rawMessage;
         await prisma.platformListing.update({
           where: { listingId_platform: { listingId: listing.id, platform: platform as Platform } },
           data: { status: PlatformStatus.ERROR, errorMessage: message },

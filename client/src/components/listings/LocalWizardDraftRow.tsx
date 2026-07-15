@@ -30,6 +30,7 @@ export function LocalWizardDraftRow({ draft, onDismiss }: Props) {
 
   return (
     <tr className="border-b border-amber-100 bg-amber-50/50 hover:bg-amber-50 transition-colors">
+      <td className="px-4 py-3" />
       <td className="px-4 py-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-amber-200 bg-amber-100">
           <FileEdit className="h-5 w-5 text-amber-700" />

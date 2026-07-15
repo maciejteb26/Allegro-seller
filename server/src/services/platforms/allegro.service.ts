@@ -8,6 +8,8 @@ import {
   getAllegroShippingRates,
   getAllegroImpliedWarranties,
   getAllegroReturnPolicies,
+  getAllegroResponsibleProducers,
+  formatNumericParamValue,
 } from '../allegro-api.service';
 import { BasePlatformService, ListingWithRelations, PublishResult } from './base.platform.service';
 import { mockPublish } from './helpers';
@@ -21,8 +23,14 @@ const EAN_PATTERN = /^\d{8}$|^\d{12,14}$/;
 const VOLUME_PATTERN = /(\d+(?:[.,]\d+)?)\s*(ml|l|kg|g)\b/i;
 const ALLEGRO_NAME_MAX_LENGTH = 75;
 
+// Wielkie litery nakladamy dopiero na nazwe wysylana do Allegro (to co widzi kupujacy) — NIGDY
+// na listing.title uzywany wewnetrznie (dopasowanie kategorii, atrybuty AI). Allegro API
+// dopasowuje kategorie po tytule i zwraca 0 wynikow dla tekstu pisanego caps lockiem, wiec
+// zapisanie wielkich liter w samym Listing.title psulo dopasowanie kategorii (i w efekcie caly
+// zestaw wymaganych atrybutow) dla kazdej kolejnej publikacji.
 function truncateName(name: string): string {
-  return name.length > ALLEGRO_NAME_MAX_LENGTH ? name.slice(0, ALLEGRO_NAME_MAX_LENGTH).trimEnd() : name;
+  const truncated = name.length > ALLEGRO_NAME_MAX_LENGTH ? name.slice(0, ALLEGRO_NAME_MAX_LENGTH).trimEnd() : name;
+  return truncated.toLocaleUpperCase('pl-PL');
 }
 
 // Dla nowej propozycji produktu (brak dopasowania w katalogu) kategoria może wymagać dowolnego
@@ -35,6 +43,7 @@ async function resolveProductParameters(
   title: string,
   description: string,
   catalogNumber: string | null,
+  productBrand: string | null,
 ): Promise<ResolvedParameter[]> {
   const { data: categoryParams } = await getAllegroCategoryParameters(userId, categoryId);
   const parameters: ResolvedParameter[] = [];
@@ -50,11 +59,28 @@ async function resolveProductParameters(
       continue;
     }
 
-    const isVolumeLike = /pojemność|objętość|waga|masa/i.test(param.name);
-    const volumeMatch = isVolumeLike && !param.dictionary?.length ? title.match(VOLUME_PATTERN) : null;
+    // Marka wpisana recznie przez uzytkownika (Listing.productBrand) ma pierwszenstwo przed
+    // zgadywaniem przez AI z tytulu/opisu — dopasowujemy ja do realnego slownika kategorii
+    // (dwukierunkowy substring, bo np. "Krosno" ma pasowac do "Krosno Glass" i odwrotnie).
+    if (param.name.toLowerCase() === 'marka' && productBrand?.trim() && param.dictionary?.length) {
+      const needle = productBrand.trim().toLowerCase();
+      const match = param.dictionary.find(
+        (d) => d.value.toLowerCase().includes(needle) || needle.includes(d.value.toLowerCase()),
+      );
+      if (match) {
+        parameters.push({ id: param.id, valuesIds: [match.id] });
+        continue;
+      }
+    }
+
+    const isNumericType = param.type === 'integer' || param.type === 'float';
+    const volumeMatch = isNumericType ? title.match(VOLUME_PATTERN) : null;
     if (volumeMatch) {
-      parameters.push({ id: param.id, values: [`${volumeMatch[1]} ${volumeMatch[2]}`] });
-      continue;
+      const numericValue = formatNumericParamValue(param, volumeMatch[1]);
+      if (numericValue) {
+        parameters.push({ id: param.id, values: [numericValue] });
+        continue;
+      }
     }
 
     unresolved.push(param);
@@ -83,6 +109,13 @@ function pickByName<T extends { id: string; name: string }>(items: T[], preferre
   return items[0];
 }
 
+// Id wybrane wprost w UI (select na koncie Allegro) ma pierwszeństwo przed dopasowaniem po
+// nazwie — ale tylko jeśli nadal istnieje na koncie (mogło zostać usunięte w panelu Allegro).
+function pickById<T extends { id: string }>(items: T[], preferredId?: string | null): T | undefined {
+  if (!preferredId) return undefined;
+  return items.find((item) => item.id === preferredId);
+}
+
 // Allegro wymaga wskazania w ofercie już istniejących na koncie ustawień sprzedażowych — to
 // nie są dane produktu, tylko konfiguracja konta zakładana w panelu Allegro (Ustawienia
 // sprzedaży > Cenniki dostaw / Zwroty i reklamacje). Cennik dostaw dopasowujemy po nazwie z
@@ -92,18 +125,28 @@ function pickByName<T extends { id: string; name: string }>(items: T[], preferre
 // nie może się powieść, więc informujemy o tym wprost zamiast wysyłać ofertę bez wymaganych pól.
 async function resolveAfterSalesAndDelivery(
   userId: string,
-  preferences: { deliveryHint?: string | null; returnPolicyName?: string | null; impliedWarrantyName?: string | null },
-): Promise<{ shippingRateId: string; returnPolicyId: string; impliedWarrantyId: string }> {
-  const [shippingRates, returnPolicies, impliedWarranties] = await Promise.all([
+  preferences: {
+    deliveryHint?: string | null;
+    returnPolicyName?: string | null;
+    impliedWarrantyName?: string | null;
+    shippingRateId?: string | null;
+    returnPolicyId?: string | null;
+    impliedWarrantyId?: string | null;
+    responsibleProducerId?: string | null;
+  },
+): Promise<{ shippingRateId: string; returnPolicyId: string; impliedWarrantyId: string; responsibleProducerId: string }> {
+  const [shippingRates, returnPolicies, impliedWarranties, responsibleProducers] = await Promise.all([
     getAllegroShippingRates(userId),
     getAllegroReturnPolicies(userId),
     getAllegroImpliedWarranties(userId),
+    getAllegroResponsibleProducers(userId),
   ]);
 
   const missing: string[] = [];
   if (shippingRates.data.length === 0) missing.push('cennik dostaw');
   if (returnPolicies.data.length === 0) missing.push('warunki zwrotu');
   if (impliedWarranties.data.length === 0) missing.push('warunki rękojmi');
+  if (responsibleProducers.data.length === 0) missing.push('producent odpowiedzialny (GPSR)');
 
   if (missing.length > 0) {
     throw new Error(
@@ -112,9 +155,17 @@ async function resolveAfterSalesAndDelivery(
   }
 
   return {
-    shippingRateId: pickByName(shippingRates.data, preferences.deliveryHint).id,
-    returnPolicyId: pickByName(returnPolicies.data, preferences.returnPolicyName).id,
-    impliedWarrantyId: pickByName(impliedWarranties.data, preferences.impliedWarrantyName).id,
+    shippingRateId:
+      pickById(shippingRates.data, preferences.shippingRateId)?.id ??
+      pickByName(shippingRates.data, preferences.deliveryHint).id,
+    returnPolicyId:
+      pickById(returnPolicies.data, preferences.returnPolicyId)?.id ??
+      pickByName(returnPolicies.data, preferences.returnPolicyName).id,
+    impliedWarrantyId:
+      pickById(impliedWarranties.data, preferences.impliedWarrantyId)?.id ??
+      pickByName(impliedWarranties.data, preferences.impliedWarrantyName).id,
+    responsibleProducerId:
+      pickById(responsibleProducers.data, preferences.responsibleProducerId)?.id ?? responsibleProducers.data[0].id,
   };
 }
 
@@ -139,6 +190,18 @@ function toAllegroDescriptionItems(description: string): Array<{ type: 'TEXT'; c
     .join('');
 
   return [{ type: 'TEXT', content }];
+}
+
+type AllegroDescriptionSection = {
+  items: Array<{ type: 'TEXT'; content: string } | { type: 'IMAGE'; url: string }>;
+};
+
+// Zdjecie glowne w osobnej sekcji (pod tekstem) - ozywia opis wizualnie, a limit 2 elementow
+// na sekcje nie jest problemem, bo tekst i zdjecie trafiaja do osobnych sekcji.
+function toAllegroDescriptionSections(description: string, imageUrl?: string): AllegroDescriptionSection[] {
+  const sections: AllegroDescriptionSection[] = [{ items: toAllegroDescriptionItems(description) }];
+  if (imageUrl) sections.push({ items: [{ type: 'IMAGE', url: imageUrl }] });
+  return sections;
 }
 
 export class AllegroService extends BasePlatformService {
@@ -178,6 +241,7 @@ export class AllegroService extends BasePlatformService {
             listing.title,
             listing.description,
             listing.catalogNumber,
+            listing.productBrand,
           ).then((parameters) => ({
             name,
             category: { id: categoryId },
@@ -188,17 +252,34 @@ export class AllegroService extends BasePlatformService {
         deliveryHint: listing.deliveryHint,
         returnPolicyName: listing.client?.allegroReturnPolicyName,
         impliedWarrantyName: listing.client?.allegroImpliedWarrantyName,
+        shippingRateId: listing.allegroShippingRateId,
+        returnPolicyId: listing.allegroReturnPolicyId,
+        impliedWarrantyId: listing.allegroImpliedWarrantyId,
+        responsibleProducerId: listing.allegroResponsibleProducerId,
       }),
     ]);
 
     // 3. Buduj payload oferty (POST /sale/product-offers — aktualny endpoint, oparty o katalog produktów).
+    // safetyInformation jest wymagane od 13.12.2024 (obowiazek GPSR). Wariant NO_SAFETY_INFORMATION
+    // jest niedozwolony dla wielu kategorii ("Uzycie tej opcji jest niedozwolone") — uzywamy wiec
+    // wariantu TEXT z neutralna, prawdziwa tresca (nie zmyslamy danych o produkcie, ktorych nie mamy).
     const payload = {
-      productSet: [{ product }],
+      productSet: [
+        {
+          product,
+          safetyInformation: {
+            type: 'TEXT',
+            description:
+              'Sprzedawca nie przekazał szczegółowych informacji o bezpieczeństwie tego produktu. Produkt należy użytkować zgodnie z jego przeznaczeniem.',
+          },
+          responsibleProducer: { type: 'ID', id: afterSales.responsibleProducerId },
+        },
+      ],
       category: { id: categoryId },
       parameters: [],
       name,
       description: {
-        sections: [{ items: toAllegroDescriptionItems(listing.description) }],
+        sections: toAllegroDescriptionSections(listing.description, imageLocations[0]),
       },
       sellingMode: {
         format: 'BUY_NOW',

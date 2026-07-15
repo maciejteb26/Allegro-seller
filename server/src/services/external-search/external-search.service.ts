@@ -37,6 +37,14 @@ export async function searchExternalProduct(
   return null;
 }
 
+// SerpAPI/Google zwraca tylko tytul/link/snippet - bez zdjecia. Doczytujemy je z og:image
+// strony wyniku (ten sam mechanizm co dla bezposredniego sourceLink), inaczej oferta zawsze
+// ladowala placeholder mimo poprawnie znalezionego produktu.
+async function fetchHitImage(url: string): Promise<string[]> {
+  const scraped = await fetchSourceLink(url);
+  return scraped?.imageUrls ?? [];
+}
+
 function filterHitsBySellers(
   hits: ExternalProductHit[],
   allowed: Set<string> | null,
@@ -77,14 +85,17 @@ function pickBestSellerHit(hits: ExternalProductHit[]): ExternalProductHit | nul
   return sellerHits[0] ?? null;
 }
 
-function hitToProductData(primary: ExternalProductHit, hits: ExternalProductHit[]): ExternalProductData {
+async function hitToProductData(
+  primary: ExternalProductHit,
+  hits: ExternalProductHit[],
+): Promise<ExternalProductData> {
   return {
     title: primary.title,
     description: primary.snippet,
     language: primary.language,
     sourceUrl: primary.url,
     sourceName: primary.sellerName ?? 'Google',
-    imageUrls: [],
+    imageUrls: await fetchHitImage(primary.url),
     hits,
   };
 }

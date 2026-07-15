@@ -26,6 +26,12 @@ export function mapListingToWizard(listing: Listing): WizardData {
     basePrice: Number(listing.basePrice),
     quantity: listing.quantity,
     selectedPlatforms: listing.platformListings.map((item) => item.platform),
+    allegroShippingRateId: orUndefined(listing.allegroShippingRateId),
+    allegroReturnPolicyId: orUndefined(listing.allegroReturnPolicyId),
+    allegroImpliedWarrantyId: orUndefined(listing.allegroImpliedWarrantyId),
+    allegroResponsibleProducerId: orUndefined(listing.allegroResponsibleProducerId),
+    allegroCategoryId: orUndefined(listing.allegroCategoryId),
+    allegroCategoryName: orUndefined(listing.allegroCategoryName),
     images: [],
   };
 }
